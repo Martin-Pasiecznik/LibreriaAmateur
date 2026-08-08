@@ -1,0 +1,19 @@
+/* Reset definitivo */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  /* Permitimos que el cuerpo crezca con el contenido */
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  /* Quitamos el height: 100% que bloqueaba el scroll de la ventana */
+  display: block; 
+}

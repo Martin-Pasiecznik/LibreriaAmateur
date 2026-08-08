@@ -1,0 +1,15 @@
+/* CSS Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  /* CAMBIO CLAVE: Usa min-height en lugar de height */
+  min-height: 100%; 
+  /* Asegúrate de que el scroll sea visible y real */
+  overflow-x: hidden; 
+  overflow-y: auto; 
+}

@@ -1,0 +1,48 @@
+# ══════════════════════════════════════════════════════════════════
+#  .gitignore
+#  Renombralo a ".gitignore" (con el punto adelante) y ponelo en la
+#  RAÍZ del proyecto. Le dice a Git qué archivos NO subir a GitHub.
+# ══════════════════════════════════════════════════════════════════
+
+# ── SECRETOS Y CONFIGURACIÓN — lo más importante ──
+# Nunca subir archivos de entorno con valores reales
+.env
+.env.local
+.env.production
+.env.*.local
+server/.env
+*/.env
+
+# ── Base de datos local ──
+*.db
+*.db-wal
+*.db-shm
+database.db
+server/database.db
+
+# ── Imágenes subidas por usuarios (no versionar contenido) ──
+server/static/covers/
+server/static/avatars_uploaded/
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+venv/
+env/
+*.egg-info/
+
+# ── Node / Frontend ──
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ── Logs ──
+*.log
+npm-debug.log*
+
+# ── Editores / Sistema operativo ──
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
