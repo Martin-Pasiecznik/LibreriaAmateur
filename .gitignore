@@ -22,7 +22,10 @@ server/database.db-shm
 royal-road-hispano/database.db
 
 # ── IMÁGENES SUBIDAS POR USUARIOS ──
-server/static/covers/
+# Ignorar las imágenes subidas por usuarios, PERO conservar la portada
+# por defecto (default_cover.jpeg) que es parte del proyecto.
+server/static/covers/*
+!server/static/covers/default_cover.jpeg
 server/static/avatars_uploaded/
 
 # ── PYTHON (backend) ──
