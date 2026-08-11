@@ -165,10 +165,10 @@ const AdvancedSearch = ({ darkMode }) => {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '30px', padding: '120px 20px 40px 20px', color: theme.textMain, minHeight: '100vh', backgroundColor: theme.bg, fontFamily: "'Inter', sans-serif" }}>
+    <div className="search-layout" style={{ display: 'flex', gap: '30px', padding: '120px 20px 40px 20px', color: theme.textMain, minHeight: '100vh', backgroundColor: theme.bg, fontFamily: "'Inter', sans-serif" }}>
       
       {/* SIDEBAR EDITORIAL */}
-      <aside style={{ 
+      <aside className="search-sidebar" style={{ 
         width: '280px', 
         backgroundColor: theme.card, 
         padding: '30px', 
@@ -343,7 +343,7 @@ const AdvancedSearch = ({ darkMode }) => {
       </aside>
 
       {/* RESULTADOS */}
-      <main style={{ flex: 1 }}>
+      <main className="search-results" style={{ flex: 1 }}>
         <div style={{ position: 'relative', marginBottom: '40px' }}>
           <input 
             type="text" 
@@ -362,7 +362,7 @@ const AdvancedSearch = ({ darkMode }) => {
           {loading && <span style={{ position: 'absolute', right: '30px', top: '22px', color: theme.accent, fontSize: '1.2rem', animation: 'pulse 1.5s infinite' }}>✦</span>}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '30px' }}>
+        <div className="search-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '30px' }}>
           {results.map(book => (
             <Link to={`/book/${book.id}`} key={book.id} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div style={{ 
@@ -417,6 +417,27 @@ const AdvancedSearch = ({ darkMode }) => {
       <style>{`
         .search-card:hover { transform: translateY(-8px); border-color: ${theme.accent} !important; }
         @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+        /* Responsividad — solo disposición, sin tocar fuentes ni colores */
+        @media (max-width: 768px) {
+          .search-layout {
+            flex-direction: column;       /* filtros arriba, resultados abajo */
+            gap: 20px;
+            padding: 90px 14px 40px 14px;
+          }
+          .search-sidebar {
+            width: auto;                  /* deja de ser 280px fijos */
+            position: static;             /* deja de ser sticky */
+            padding: 20px;
+          }
+        }
+        @media (max-width: 480px) {
+          .search-grid {
+            /* tarjetas más angostas para que entren bien en móvil */
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+            gap: 16px !important;
+          }
+        }
       `}</style>
     </div>
   );

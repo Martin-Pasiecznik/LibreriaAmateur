@@ -80,10 +80,10 @@ const AddChapter = ({ user, darkMode }) => {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.bg, paddingTop: '80px', fontFamily: "'Inter', sans-serif" }}>
+    <div className="addchapter-container" style={{ display: 'flex', minHeight: '100vh', backgroundColor: theme.bg, paddingTop: '80px', fontFamily: "'Inter', sans-serif" }}>
 
       {/* SIDEBAR */}
-      <aside style={{ width: '300px', padding: '40px 20px', borderRight: `1px solid ${theme.border}`, position: 'sticky', top: '80px', height: 'calc(100vh - 80px)', overflowY: 'auto' }}>
+      <aside className="addchapter-sidebar" style={{ width: '300px', padding: '40px 20px', borderRight: `1px solid ${theme.border}`, position: 'sticky', top: '80px', height: 'calc(100vh - 80px)', overflowY: 'auto' }}>
         <h3 style={{ fontFamily: "'Crimson Pro', serif", color: theme.accent, fontSize: '1.4rem', marginBottom: '20px' }}>
           Índice Actual
         </h3>
@@ -102,7 +102,7 @@ const AddChapter = ({ user, darkMode }) => {
       </aside>
 
       {/* EDITOR */}
-      <main style={{ flex: 1, padding: '40px 60px', maxWidth: '1000px' }}>
+      <main className="addchapter-editor" style={{ flex: 1, padding: '40px 60px', maxWidth: '1000px' }}>
         <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', color: theme.textMuted, cursor: 'pointer', marginBottom: '30px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
           ← Volver al libro
         </button>
@@ -125,6 +125,7 @@ const AddChapter = ({ user, darkMode }) => {
               required
             />
             <textarea
+              className="addchapter-textarea"
               style={inputStyle(theme, false)}
               placeholder="Comienza a escribir tu historia aquí..."
               value={content}
@@ -139,6 +140,31 @@ const AddChapter = ({ user, darkMode }) => {
           </form>
         </div>
       </main>
+
+      <style>{`
+        /* Responsividad — solo disposición, sin tocar fuentes ni colores */
+        @media (max-width: 768px) {
+          .addchapter-container {
+            flex-direction: column;       /* apila índice y editor */
+            padding-top: 70px;
+          }
+          .addchapter-sidebar {
+            width: auto;                  /* deja de ser 300px fijos */
+            position: static;             /* deja de ser sticky */
+            height: auto;
+            max-height: 220px;            /* el índice no ocupa toda la pantalla */
+            border-right: none;
+            border-bottom: 1px solid ${theme.border};
+          }
+          .addchapter-editor {
+            padding: 25px 16px;           /* mucho menos padding lateral */
+            max-width: 100%;
+          }
+          .addchapter-textarea {
+            height: 350px !important;     /* editor más bajo en móvil */
+          }
+        }
+      `}</style>
     </div>
   );
 };

@@ -41,9 +41,9 @@ const AuthorDashboard = ({ user, darkMode }) => {
   if (!user) return null;
 
   return (
-    <div style={{ padding: '60px 0', minHeight: '100vh', color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
+    <div className="dash-container" style={{ padding: '60px 0', minHeight: '100vh', color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
 
-      <header style={{
+      <header className="dash-header" style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
         marginBottom: '60px', borderBottom: `1px solid ${theme.border}`, paddingBottom: '30px',
       }}>
@@ -91,7 +91,7 @@ const AuthorDashboard = ({ user, darkMode }) => {
                 className="dashboard-card"
               >
                 {/* Info del libro */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
+                <div className="dash-card-info" style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
 
                   {/* Portada */}
                   <div style={{ width: '60px', height: '85px', backgroundColor: '#111', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 5px 15px rgba(0,0,0,0.2)', flexShrink: 0 }}>
@@ -130,7 +130,7 @@ const AuthorDashboard = ({ user, darkMode }) => {
                 </div>
 
                 {/* Botones */}
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div className="dash-card-buttons" style={{ display: 'flex', gap: '12px' }}>
                   <button
                     onClick={() => navigate(`/dashboard/book/${book.id}`)}
                     style={{ border: `1px solid ${theme.border}`, background: 'transparent', color: theme.textMain, padding: '10px 20px', borderRadius: '50px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', transition: 'all 0.3s ease' }}
@@ -156,6 +156,32 @@ const AuthorDashboard = ({ user, darkMode }) => {
 
       <style>{`
         .dashboard-card:hover { border-color: ${theme.accent} !important; }
+
+        /* Responsividad — solo disposición, sin tocar fuentes ni colores */
+        @media (max-width: 640px) {
+          .dash-container {
+            padding: 40px 16px;
+          }
+          /* Header: título arriba, botón abajo, alineados a la izquierda */
+          .dash-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 20px;
+          }
+          /* Tarjetas: info arriba, botones abajo (dejan de competir por el ancho) */
+          .dashboard-card {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 20px;
+          }
+          .dash-card-buttons {
+            width: 100%;
+          }
+          /* Los botones ocupan la mitad cada uno, a lo ancho */
+          .dash-card-buttons button {
+            flex: 1;
+          }
+        }
       `}</style>
     </div>
   );

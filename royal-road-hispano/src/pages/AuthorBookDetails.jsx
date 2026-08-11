@@ -462,7 +462,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
                   </svg>
                 )}
                 <span>
-                  {deletingBook ? 'Eliminando...' : deleteLocked ? 'Espera para confirmar' : 'Sí, eliminar para siempre'}
+                  {deletingBook ? 'Eliminando...' : deleteLocked ? 'Esperá para confirmar' : 'Sí, eliminar para siempre'}
                 </span>
               </button>
 
@@ -487,7 +487,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
         </button>
 
         {/* HEADER */}
-        <div style={{ display: 'flex', gap: '40px', marginBottom: '60px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div className="abd-header" style={{ display: 'flex', gap: '40px', marginBottom: '60px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <img
             src={`${API_BASE}/static/covers/${book.author_note}`}
             style={{ width: '180px', height: '270px', objectFit: 'cover', borderRadius: '12px', boxShadow: `0 20px 40px rgba(0,0,0,${darkMode ? '0.5' : '0.2'})`, border: `1px solid ${theme.border}` }}
@@ -689,7 +689,8 @@ const AuthorBookDetails = ({ user, darkMode }) => {
             <span style={{ fontSize: '0.8rem', color: theme.textMuted }}>{chapters.length} Capítulos publicados</span>
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="abd-table-scroll" style={{ overflowX: 'auto' }}>
+          <table className="abd-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ textAlign: 'left', backgroundColor: 'rgba(0,0,0,0.02)' }}>
                 <th style={thStyle}>ORDEN</th>
@@ -748,6 +749,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
       </div>
@@ -755,6 +757,26 @@ const AuthorBookDetails = ({ user, darkMode }) => {
       <style>{`
         .table-row:hover { background: rgba(255,255,255,0.02); }
         input::placeholder, textarea::placeholder { color: #555; }
+
+        /* Responsividad — solo disposición, sin tocar fuentes ni colores */
+        @media (max-width: 768px) {
+          .abd-header {
+            gap: 20px;
+            margin-bottom: 40px;
+            justify-content: center;
+            text-align: center;
+          }
+          /* La tabla puede deslizarse horizontal sin romper la página */
+          .abd-table-scroll {
+            -webkit-overflow-scrolling: touch;
+          }
+          .abd-table {
+            min-width: 600px;   /* mantiene columnas legibles; el contenedor scrollea */
+          }
+          .abd-table th, .abd-table td {
+            padding: 12px 16px !important;  /* menos padding para que quepa más */
+          }
+        }
       `}</style>
     </div>
   );
