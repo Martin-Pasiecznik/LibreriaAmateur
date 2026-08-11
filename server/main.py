@@ -75,12 +75,21 @@ GOOGLE_CLIENT_ID = os.environ.get(
 # #7/#12 — URL pública del servidor. En local usa el default; en producción
 # se setea la variable de entorno SERVER_URL con el dominio real.
 SERVER_URL = os.environ.get('SERVER_URL', 'http://127.0.0.1:5001')
-UPLOAD_FOLDER = 'static/covers'
+
+# Rutas ABSOLUTAS calculadas desde la ubicación de este archivo.
+# Así funcionan sin importar desde qué carpeta se ejecute la app
+# (en local Flask corre desde server/, pero en producción el WSGI
+# usa otro directorio de trabajo — con rutas relativas fallaba).
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'covers')
+AVATARS_UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'avatars_uploaded')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB
+# Crear las carpetas si no existen (en la ubicación correcta)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(AVATARS_UPLOAD_FOLDER, exist_ok=True)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "database.db")
+DB_PATH = os.path.join(BASE_DIR, "database.db")
 
 # #3 — Límites de longitud de texto (en caracteres). Evitan que alguien
 # sature la base con textos gigantes. Ajustables según necesites.
@@ -1108,7 +1117,7 @@ def update_profile():
             img.thumbnail((400, 400))
             clean_email = email.replace('@', '_').replace('.', '_')
             filename = f"profile_{clean_email}.jpg"
-            profile_folder = os.path.join('static', 'avatars_uploaded')
+            profile_folder = AVATARS_UPLOAD_FOLDER
             os.makedirs(profile_folder, exist_ok=True)
             filepath = os.path.join(profile_folder, filename)
             img.save(filepath, "JPEG", quality=85, optimize=True)
@@ -1294,7 +1303,7 @@ def serve_covers(filename):
 
 @app.route('/static/avatars_uploaded/<path:filename>')
 def serve_user_avatars(filename):
-    return send_from_directory('static/avatars_uploaded', filename)
+    return send_from_directory(AVATARS_UPLOAD_FOLDER, filename)
 
 
 @app.route('/static/<path:path>')

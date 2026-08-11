@@ -137,7 +137,7 @@ const AuthorDashboard = ({ user, darkMode }) => {
                     onMouseOver={e => { e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.color = theme.accent; }}
                     onMouseOut={e => { e.currentTarget.style.borderColor = theme.border; e.currentTarget.style.color = theme.textMain; }}
                   >
-                    ESTADÍSTICAS
+                    ESTADÍSTICAS Y CONFIGURACIÓN
                   </button>
                   <button
                     onClick={() => navigate(`/add-chapter/${book.id}`)}
