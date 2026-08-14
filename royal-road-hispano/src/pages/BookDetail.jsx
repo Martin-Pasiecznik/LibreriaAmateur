@@ -182,7 +182,7 @@ const BookDetail = ({ user, darkMode }) => {
     : `${API_BASE}/static/covers/default_cover.jpeg`;
 
   return (
-    <div style={{ padding: '60px 20px', maxWidth: '1100px', margin: '0 auto', color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
+    <div className="bd-container" style={{ padding: '60px 20px', maxWidth: '1100px', margin: '0 auto', color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
 
       {/* SEO dinámico — título y descripción según el libro que se está viendo.
           La sinopsis se recorta a ~160 caracteres, que es lo que Google muestra. */}
@@ -196,18 +196,18 @@ const BookDetail = ({ user, darkMode }) => {
       </Helmet>
 
       {/* ── HEADER ── */}
-      <div style={{ display: 'flex', gap: '60px', marginBottom: '80px', flexWrap: 'wrap' }}>
+      <div className="bd-header" style={{ display: 'flex', gap: '60px', marginBottom: '80px', flexWrap: 'wrap' }}>
 
-        <div style={{ flexShrink: 0 }}>
+        <div className="bd-cover-wrap" style={{ flexShrink: 0 }}>
           {book.author_note && book.author_note !== 'null' ? (
-            <img src={`${API_BASE}/static/covers/${book.author_note}`} style={{ width: '300px', borderRadius: '12px', boxShadow: '0 30px 60px rgba(0,0,0,0.5)', border: `1px solid ${theme.border}`, objectFit: 'cover' }} alt="Portada" />
+            <img className="bd-cover" src={`${API_BASE}/static/covers/${book.author_note}`} style={{ width: '300px', borderRadius: '12px', boxShadow: '0 30px 60px rgba(0,0,0,0.5)', border: `1px solid ${theme.border}`, objectFit: 'cover' }} alt="Portada" />
           ) : (
             <div style={defaultCoverStyle}>SIN PORTADA</div>
           )}
         </div>
 
-        <div style={{ flex: 1, minWidth: '320px' }}>
-          <h1 style={{ fontSize: '3.5rem', margin: '0 0 10px 0', fontFamily: "'Crimson Pro', serif", fontWeight: 400, letterSpacing: '-1px' }}>{book.title}</h1>
+        <div className="bd-info" style={{ flex: 1, minWidth: '320px' }}>
+          <h1 className="bd-title" style={{ fontSize: '3.5rem', margin: '0 0 10px 0', fontFamily: "'Crimson Pro', serif", fontWeight: 400, letterSpacing: '-1px' }}>{book.title}</h1>
           <p style={{ color: theme.accent, fontSize: '1.3rem', marginBottom: '20px', fontWeight: 500, fontStyle: 'italic', fontFamily: "'Crimson Pro', serif" }}>Autor: {book.author}</p>
 
           {/* ══ ESTADO + FECHA ══════════════════════════════════════════════ */}
@@ -307,7 +307,7 @@ const BookDetail = ({ user, darkMode }) => {
       {/* ── ÍNDICE ── */}
       <div style={{ marginBottom: '80px' }}>
         <h3 style={{ fontSize: '1.8rem', fontFamily: "'Crimson Pro', serif", borderBottom: `1px solid ${theme.border}`, paddingBottom: '15px', marginBottom: '30px' }}>Índice de capítulos</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+        <div className="bd-chapters-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
           {chapters.map((ch, index) => {
             const isRead   = progress.readChapters.includes(ch.id);
             const isLast   = progress.lastChapterIndex === ch.id;
@@ -423,7 +423,7 @@ const BookDetail = ({ user, darkMode }) => {
       </div>
 
       {notif && (
-        <div style={{ position: 'fixed', bottom: '30px', right: '30px', backgroundColor: '#1a1a1a', color: 'white', padding: '16px 30px', borderRadius: '50px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '15px', fontSize: '0.85rem', border: `1px solid ${theme.accent}`, animation: 'slideIn 0.5s ease-out' }}>
+        <div className="bd-toast" style={{ position: 'fixed', bottom: '30px', right: '30px', backgroundColor: '#1a1a1a', color: 'white', padding: '16px 30px', borderRadius: '50px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '15px', fontSize: '0.85rem', border: `1px solid ${theme.accent}`, animation: 'slideIn 0.5s ease-out' }}>
           <span style={{ color: theme.accent }}>✦</span> {notif}
         </div>
       )}
@@ -431,6 +431,31 @@ const BookDetail = ({ user, darkMode }) => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;600;800&display=swap');
         @keyframes slideIn { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Responsividad — solo disposición, sin tocar fuentes ni colores */
+        @media (max-width: 768px) {
+          .bd-container { padding: 40px 16px; }
+          .bd-header {
+            gap: 30px;
+            margin-bottom: 50px;
+            justify-content: center;      /* centra la portada cuando se apila */
+          }
+          .bd-cover-wrap { width: 100%; display: flex; justify-content: center; }
+          .bd-cover { width: 220px !important; }   /* portada más chica en móvil */
+          .bd-info { min-width: 0 !important; }    /* evita desborde bajo 320px */
+          .bd-title { font-size: 2.4rem !important; text-align: center; }
+        }
+        @media (max-width: 480px) {
+          .bd-chapters-grid {
+            grid-template-columns: 1fr !important;  /* capítulos en una columna */
+          }
+          .bd-toast {
+            left: 16px !important;
+            right: 16px !important;
+            bottom: 16px !important;
+            justify-content: center;
+          }
+        }
       `}</style>
     </div>
   );

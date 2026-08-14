@@ -76,7 +76,7 @@ const MyLibrary = ({ user, darkMode }) => {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '35px' }}>
+      <div className="lib-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '35px' }}>
         {filteredBooks.map(book => (
           <div
             key={book.id}
@@ -84,7 +84,7 @@ const MyLibrary = ({ user, darkMode }) => {
             style={{ cursor: 'pointer', textAlign: 'left', transition: 'all 0.4s ease' }}
             className="library-card"
           >
-            <div style={{
+            <div className="lib-cover" style={{
               height: '260px', backgroundColor: theme.card, borderRadius: '12px',
               marginBottom: '15px', overflow: 'hidden', position: 'relative',
               boxShadow: `0 10px 20px rgba(0,0,0,${darkMode ? '0.5' : '0.15'})`,
@@ -129,6 +129,17 @@ const MyLibrary = ({ user, darkMode }) => {
         .library-card:hover .cover-img { transform: scale(1.1); }
         .library-card:hover h4 { color: ${theme.accent}; }
         .library-card:hover { transform: translateY(-5px); }
+
+        /* Responsividad — solo disposición, sin tocar fuentes ni colores */
+        @media (max-width: 480px) {
+          .lib-grid {
+            grid-template-columns: repeat(2, 1fr) !important;  /* 2 columnas fijas */
+            gap: 16px !important;                              /* menos separación */
+          }
+          .lib-cover {
+            height: 210px !important;   /* portadas un poco más bajas */
+          }
+        }
       `}</style>
     </div>
   );

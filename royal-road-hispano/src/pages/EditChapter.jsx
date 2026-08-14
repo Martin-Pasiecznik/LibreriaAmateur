@@ -77,7 +77,7 @@ const EditChapter = ({ darkMode, user }) => {
   );
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '120px 20px 60px 20px', color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
+    <div className="editch-container" style={{ maxWidth: '900px', margin: '0 auto', padding: '120px 20px 60px 20px', color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
 
       <button
         onClick={() => navigate(-1)}
@@ -88,7 +88,7 @@ const EditChapter = ({ darkMode, user }) => {
         ← Volver al panel
       </button>
 
-      <div style={{ backgroundColor: theme.card, padding: '40px', borderRadius: '24px', border: `1px solid ${theme.border}`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+      <div className="editch-card" style={{ backgroundColor: theme.card, padding: '40px', borderRadius: '24px', border: `1px solid ${theme.border}`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
 
         <header style={{ marginBottom: '40px' }}>
           <h2 style={{ fontFamily: "'Crimson Pro', serif", fontSize: '2.2rem', margin: 0, color: theme.accent }}>Editar Capítulo</h2>
@@ -104,6 +104,7 @@ const EditChapter = ({ darkMode, user }) => {
           <div style={{ marginBottom: '25px' }}>
             <label style={labelStyle(theme)}>CONTENIDO DE LA OBRA</label>
             <textarea
+              className="editch-textarea"
               style={{ ...inputStyle(theme), height: '500px', fontFamily: "'Crimson Pro', serif", fontSize: '1.25rem', lineHeight: '1.7', resize: 'vertical', padding: '20px' }}
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -111,7 +112,7 @@ const EditChapter = ({ darkMode, user }) => {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
+          <div className="editch-buttons" style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
             <button type="submit" disabled={saving} style={{ ...btnStyle(theme, true), opacity: saving ? 0.6 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>
               {saving ? 'Guardando...' : 'Guardar Cambios'}
             </button>
@@ -121,6 +122,21 @@ const EditChapter = ({ darkMode, user }) => {
           </div>
         </form>
       </div>
+
+      <style>{`
+        /* Responsividad — solo disposición, sin tocar fuentes ni colores */
+        @media (max-width: 600px) {
+          .editch-container {
+            padding: 90px 14px 40px 14px;
+          }
+          .editch-card {
+            padding: 24px 18px;    /* menos padding para ganar ancho útil */
+          }
+          .editch-textarea {
+            height: 350px !important;   /* editor más bajo en móvil */
+          }
+        }
+      `}</style>
     </div>
   );
 };

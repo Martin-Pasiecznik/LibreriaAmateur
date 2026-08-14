@@ -115,8 +115,8 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
   }
 
   return (
-    <div style={{ maxWidth: '700px', margin: '0 auto', padding: '120px 20px 60px 20px', color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
-      <div style={{ backgroundColor: theme.card, padding: '40px', borderRadius: '24px', border: `1px solid ${theme.border}`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+    <div className="pub-container" style={{ maxWidth: '700px', margin: '0 auto', padding: '120px 20px 60px 20px', color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
+      <div className="pub-card" style={{ backgroundColor: theme.card, padding: '40px', borderRadius: '24px', border: `1px solid ${theme.border}`, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
 
         <header style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h2 style={{ fontFamily: "'Crimson Pro', serif", fontSize: '2.2rem', margin: 0, color: theme.accent }}>
@@ -188,6 +188,18 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
           </button>
         </form>
       </div>
+
+      <style>{`
+        /* Responsividad — solo disposición, sin tocar fuentes ni colores */
+        @media (max-width: 600px) {
+          .pub-container {
+            padding: 90px 14px 40px 14px;
+          }
+          .pub-card {
+            padding: 24px 18px;   /* menos padding para ganar ancho útil */
+          }
+        }
+      `}</style>
     </div>
   );
 };

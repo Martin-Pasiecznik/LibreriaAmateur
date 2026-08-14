@@ -196,8 +196,8 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
       </main>
 
       <nav className="reader-nav" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', padding: '60px 0', maxWidth: '800px', margin: '0 auto', borderTop: `1px solid ${theme.border}`, borderBottom: `1px solid ${theme.border}` }}>
-        <button className="reader-nav-btn" style={{ ...navBtnStyle(theme), opacity: currentIndex === 0 ? 0.2 : 1 }} disabled={currentIndex === 0} onClick={() => navigate(`/reader/${id}/${currentIndex - 1}`)}>ANTERIOR</button>
-        <div style={{ textAlign: 'center' }}>
+        <button className="reader-nav-btn reader-nav-prev" style={{ ...navBtnStyle(theme), opacity: currentIndex === 0 ? 0.2 : 1 }} disabled={currentIndex === 0} onClick={() => navigate(`/reader/${id}/${currentIndex - 1}`)}>ANTERIOR</button>
+        <div className="reader-nav-info" style={{ textAlign: 'center' }}>
           <span style={{ fontWeight: 800, color: theme.textMain, fontSize: '1rem', display: 'block' }}>{currentIndex + 1} / {chapters.length}</span>
           <span style={{ fontSize: '0.6rem', color: theme.accent, fontWeight: 800, letterSpacing: '1px' }}>CAPÍTULO</span>
           <button
@@ -211,7 +211,7 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
             VOLVER AL ÍNDICE
           </button>
         </div>
-        <button className="reader-nav-btn" style={{ ...navBtnStyle(theme), opacity: currentIndex === chapters.length - 1 ? 0.2 : 1 }} disabled={currentIndex === chapters.length - 1} onClick={() => navigate(`/reader/${id}/${currentIndex + 1}`)}>SIGUIENTE</button>
+        <button className="reader-nav-btn reader-nav-next" style={{ ...navBtnStyle(theme), opacity: currentIndex === chapters.length - 1 ? 0.2 : 1 }} disabled={currentIndex === chapters.length - 1} onClick={() => navigate(`/reader/${id}/${currentIndex + 1}`)}>SIGUIENTE</button>
       </nav>
 
       <section className="reader-comments-section" style={{ maxWidth: '800px', margin: '60px auto', padding: '0 30px' }}>
@@ -285,8 +285,23 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
             padding: 30px 16px !important;
             flex-wrap: wrap !important;
           }
+          /* Opción C: la info de capítulo va arriba a lo ancho,
+             y los dos botones quedan lado a lado abajo, parejos. */
+          .reader-nav-info {
+            order: 0;
+            width: 100%;
+            margin-bottom: 6px;
+          }
+          .reader-nav-prev {
+            order: 1;
+            flex: 1;                     /* mitad izquierda */
+          }
+          .reader-nav-next {
+            order: 2;
+            flex: 1;                     /* mitad derecha */
+          }
           .reader-nav-btn {
-            padding: 10px 22px !important;
+            padding: 12px 10px !important;
           }
         }
 

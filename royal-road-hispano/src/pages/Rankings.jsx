@@ -119,7 +119,7 @@ const Rankings = ({ darkMode }) => {
   };
 
   return (
-    <div style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+    <div className="rank-container" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
       <header style={{ textAlign: 'center', marginBottom: '60px', position: 'relative' }}>
         {/* Pequeño halo de luz para el título */}
         <div style={{
@@ -228,7 +228,7 @@ const Rankings = ({ darkMode }) => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {topBooks.map((book, index) => (
           <Link key={book.id} to={`/book/${book.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{
+            <div className="rank-row" style={{
               display: 'flex', alignItems: 'center', padding: '20px 25px', 
               background: theme.card, borderRadius: '20px', 
               backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
@@ -248,7 +248,7 @@ const Rankings = ({ darkMode }) => {
             }}>
               
               {/* NÚMERO EDITORIAL */}
-              <span style={{ 
+              <span className="rank-number" style={{ 
                 fontSize: index < 3 ? '3rem' : '1.8rem', 
                 fontWeight: index < 3 ? 400 : 300, 
                 width: '60px', color: getRankColor(index),
@@ -260,19 +260,20 @@ const Rankings = ({ darkMode }) => {
               </span>
 
               <img 
+                className="rank-cover"
                 src={`${API_BASE}/static/covers/${book.author_note}`} 
                 style={{ width: '65px', height: '95px', objectFit: 'cover', borderRadius: '10px', marginRight: '20px', boxShadow: '0 5px 15px rgba(0,0,0,0.2)' }} 
                 alt={book.title}
                 onError={(e) => { e.target.src = "https://placehold.jp/24/333333/ffffff/65x95.png?text=No+Img" }}
               />
 
-              <div style={{ flex: 1 }}>
+              <div className="rank-info" style={{ flex: 1 }}>
                 <h3 style={{ margin: '0 0 5px 0', fontSize: '1.25rem', fontWeight: 600, color: theme.textMain, fontFamily: "'Crimson Pro', serif" }}>{book.title}</h3>
                 <p style={{ margin: 0, fontSize: '0.9rem', color: theme.accent, fontWeight: 400, fontStyle: 'italic' }}>por {book.author}</p>
               </div>
 
               {/* Estadísticas minimalistas */}
-              <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
+              <div className="rank-stats" style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                     <span style={{ fontSize: '1.3rem', fontWeight: 600, color: theme.textMain }}>
@@ -312,7 +313,41 @@ const Rankings = ({ darkMode }) => {
         )}
       </div>
 
-      <style>{`@keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }`}</style>
+      <style>{`
+        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+        /* Responsividad — solo disposición, sin tocar fuentes ni colores */
+        @media (max-width: 640px) {
+          .rank-container { padding: 30px 14px; }
+          /* Cada fila: número + portada + título arriba, stats abajo */
+          .rank-row {
+            flex-wrap: wrap;
+            padding: 16px !important;
+            gap: 12px;
+          }
+          .rank-number {
+            width: 36px !important;
+            font-size: 1.6rem !important;
+          }
+          .rank-cover {
+            width: 50px !important;
+            height: 72px !important;
+            margin-right: 12px !important;
+          }
+          .rank-info {
+            flex: 1;
+            min-width: 0;   /* permite que el título se recorte si es largo */
+          }
+          /* Las estadísticas pasan abajo, ocupando el ancho completo */
+          .rank-stats {
+            width: 100%;
+            justify-content: space-around !important;
+            gap: 0 !important;
+            padding-top: 12px;
+            border-top: 1px solid ${theme.border};
+          }
+        }
+      `}</style>
     </div>
   );
 };
