@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE, authHeader } from '../App';
+import CoverImage from '../components/CoverImage';
 
 const MyLibrary = ({ user, darkMode }) => {
   const [books, setBooks] = useState([]);
@@ -90,12 +91,12 @@ const MyLibrary = ({ user, darkMode }) => {
               boxShadow: `0 10px 20px rgba(0,0,0,${darkMode ? '0.5' : '0.15'})`,
               border: `1px solid ${theme.border}`, backdropFilter: 'blur(10px)',
             }}>
-              <img
-                src={`${API_BASE}/static/covers/${book.author_note}`}
-                alt={book.title}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                className="cover-img"
-                onError={(e) => { e.target.src = 'https://placehold.jp/24/333333/ffffff/180x260.png?text=Sin+Portada'; }}
+              <CoverImage
+                authorNote={book.author_note}
+                title={book.title}
+                theme={theme}
+                darkMode={darkMode}
+                titleSize="1.05rem"
               />
               <div style={{
                 position: 'absolute', top: '12px', right: '12px',

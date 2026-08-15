@@ -124,7 +124,8 @@ def init_db_internal():
         author_note TEXT,
         tags TEXT,
         views INTEGER DEFAULT 0,
-        book_status TEXT DEFAULT 'ongoing')''')
+        book_status TEXT DEFAULT 'ongoing',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS chapters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -134,6 +135,7 @@ def init_db_internal():
         word_count INTEGER DEFAULT 0,
         order_index INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         FOREIGN KEY (book_id) REFERENCES books (id))''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS ratings (
@@ -507,8 +509,8 @@ def handle_books():
 
         conn = get_db_connection()
         conn.execute('''
-            INSERT INTO books (title, author, author_email, description, author_note, tags)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO books (title, author, author_email, description, author_note, tags, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
         ''', (
             title,
             request.form.get('author'),
@@ -812,7 +814,7 @@ def handle_single_chapter(chapter_id):
             return jsonify({"error": err}), 400
         word_count = len(content.split()) if content else 0
         conn.execute(
-            'UPDATE chapters SET title = ?, content = ?, word_count = ? WHERE id = ?',
+            "UPDATE chapters SET title = ?, content = ?, word_count = ?, updated_at = datetime('now') WHERE id = ?",
             (title, content, word_count, chapter_id)
         )
         conn.commit()

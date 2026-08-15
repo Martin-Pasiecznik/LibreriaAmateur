@@ -20,6 +20,7 @@ import AuthorBookDetails from "./pages/AuthorBookDetails";
 import EditChapter from "./pages/EditChapter";
 import MyLibrary from "./pages/MyLibrary";
 import AdvancedSearch from "./pages/AdvancedSearch";
+import CoverImage from "./components/CoverImage";
 
 // ─────────────────────────────────────────────
 // CAMBIO 1: URL base centralizada.
@@ -665,15 +666,15 @@ function App() {
                             backgroundColor: theme.card, padding: "15px",
                             borderRadius: "12px", border: `1px solid ${theme.border}`,
                           }}>
-                            {book.author_note && book.author_note !== "null" ? (
-                              <img
-                                src={`${API_BASE}/static/covers/${book.author_note}`}
-                                alt={book.title}
-                                style={{ width: "100%", aspectRatio: "2/3", borderRadius: "8px", objectFit: "cover" }}
+                            <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: "8px", overflow: "hidden" }}>
+                              <CoverImage
+                                authorNote={book.author_note}
+                                title={book.title}
+                                theme={theme}
+                                darkMode={darkMode}
+                                titleSize="0.85rem"
                               />
-                            ) : (
-                              <div style={defaultCoverStyle}>SIN IMAGEN</div>
-                            )}
+                            </div>
                             <h3 style={{ margin: "15px 0 0 0", fontSize: "0.9rem", fontWeight: 700, textAlign: "center" }}>
                               {book.title}
                             </h3>
@@ -698,16 +699,14 @@ function App() {
                             display: "flex", gap: "15px", padding: "15px", borderRadius: "16px",
                             alignItems: "center", backgroundColor: theme.card, border: `1px solid ${theme.border}`,
                           }}>
-                            <div style={{ width: "60px", height: "80px", flexShrink: 0 }}>
-                              {book.author_note && book.author_note !== "null" ? (
-                                <img
-                                  src={`${API_BASE}/static/covers/${book.author_note}`}
-                                  alt={book.title}
-                                  style={{ width: "100%", height: "100%", borderRadius: "6px", objectFit: "cover" }}
-                                />
-                              ) : (
-                                <div style={{ ...defaultCoverStyle, fontSize: "0.5rem" }}>SIN FOTO</div>
-                              )}
+                            <div style={{ width: "60px", height: "80px", flexShrink: 0, borderRadius: "6px", overflow: "hidden" }}>
+                              <CoverImage
+                                authorNote={book.author_note}
+                                title={book.title}
+                                theme={theme}
+                                darkMode={darkMode}
+                                titleSize="0.5rem"
+                              />
                             </div>
                             <div style={{ overflow: "hidden" }}>
                               <h3 style={{

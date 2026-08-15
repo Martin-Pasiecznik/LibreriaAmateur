@@ -23,6 +23,7 @@ def init_db():
     # ── 2. LIBROS ──────────────────────────────────────────────────────────────
     # author_note guarda el filename de la portada (ej: "cover_1234.jpg").
     # book_status: 'ongoing' | 'completed' | 'paused' | 'abandoned'
+    # created_at: fecha de creación del libro (para ordenar por "más nuevos").
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS books (
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,11 +34,13 @@ def init_db():
         author_note  TEXT,
         tags         TEXT,
         views        INTEGER DEFAULT 0,
-        book_status  TEXT    DEFAULT 'ongoing'
+        book_status  TEXT    DEFAULT 'ongoing',
+        created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
     )''')
 
     # ── 3. CAPÍTULOS ───────────────────────────────────────────────────────────
     # created_at permite mostrar "última actualización" en el detalle del libro.
+    # updated_at registra cuándo se editó por última vez (NULL si nunca se editó).
     cursor.execute('''CREATE TABLE IF NOT EXISTS chapters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         book_id INTEGER NOT NULL,
@@ -46,6 +49,7 @@ def init_db():
         word_count INTEGER DEFAULT 0,
         order_index INTEGER,
         created_at DATETIME,
+        updated_at DATETIME,
         FOREIGN KEY (book_id) REFERENCES books (id))''')
 
     # ── 4. CALIFICACIONES ──────────────────────────────────────────────────────

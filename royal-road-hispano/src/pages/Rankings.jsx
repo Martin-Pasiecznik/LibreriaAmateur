@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE } from '../App';
+import CoverImage from '../components/CoverImage';
 
 const Rankings = ({ darkMode }) => {
   const [topBooks, setTopBooks] = useState([]);
@@ -259,13 +260,15 @@ const Rankings = ({ darkMode }) => {
                 {index + 1}
               </span>
 
-              <img 
-                className="rank-cover"
-                src={`${API_BASE}/static/covers/${book.author_note}`} 
-                style={{ width: '65px', height: '95px', objectFit: 'cover', borderRadius: '10px', marginRight: '20px', boxShadow: '0 5px 15px rgba(0,0,0,0.2)' }} 
-                alt={book.title}
-                onError={(e) => { e.target.src = "https://placehold.jp/24/333333/ffffff/65x95.png?text=No+Img" }}
-              />
+              <div className="rank-cover" style={{ width: '65px', height: '95px', flexShrink: 0, marginRight: '20px', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 5px 15px rgba(0,0,0,0.2)' }}>
+                <CoverImage
+                  authorNote={book.author_note}
+                  title={book.title}
+                  theme={theme}
+                  darkMode={darkMode}
+                  titleSize="0.6rem"
+                />
+              </div>
 
               <div className="rank-info" style={{ flex: 1 }}>
                 <h3 style={{ margin: '0 0 5px 0', fontSize: '1.25rem', fontWeight: 600, color: theme.textMain, fontFamily: "'Crimson Pro', serif" }}>{book.title}</h3>

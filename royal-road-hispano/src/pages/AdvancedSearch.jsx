@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE } from '../App';
+import CoverImage from '../components/CoverImage';
 
 const AdvancedSearch = ({ darkMode }) => {
   const [results, setResults] = useState([]);
@@ -370,9 +371,15 @@ const AdvancedSearch = ({ darkMode }) => {
                 border: `1px solid ${theme.border}`, transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)'
               }} className="search-card">
-                <img src={book.author_note && book.author_note !== 'null' ? `${API_BASE}/static/covers/${book.author_note}` : "https://placehold.jp/24/333333/ffffff/220x330.png?text=No+Cover"} 
-                     style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', borderBottom: `1px solid ${theme.border}` }} 
-                     alt={book.title} />
+                <div style={{ width: '100%', aspectRatio: '2/3', borderBottom: `1px solid ${theme.border}`, overflow: 'hidden' }}>
+                  <CoverImage
+                    authorNote={book.author_note}
+                    title={book.title}
+                    theme={theme}
+                    darkMode={darkMode}
+                    titleSize="1.1rem"
+                  />
+                </div>
                 <div style={{ padding: '20px 15px' }}>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '1.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: "'Crimson Pro', serif", color: theme.textMain }}>{book.title}</h4>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
