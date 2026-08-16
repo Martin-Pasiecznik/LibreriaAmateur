@@ -135,7 +135,8 @@ def init_db_internal():
         views INTEGER DEFAULT 0,
         book_status TEXT DEFAULT 'ongoing',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        is_adult INTEGER DEFAULT 0)''')
+        is_adult INTEGER DEFAULT 0,
+        is_hidden INTEGER DEFAULT 0)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS chapters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -163,7 +164,8 @@ def init_db_internal():
         user_name TEXT,
         user_email TEXT,
         text TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_hidden INTEGER DEFAULT 0)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS view_logs (
         book_id INTEGER,
@@ -313,12 +315,19 @@ def require_auth(f):
     """
     Decorador que protege un endpoint: rechaza con 401 si no hay
     sesión válida. El email verificado queda en g.current_user_email.
+    Un usuario baneado es rechazado con 403.
     """
     @functools.wraps(f)
     def decorated(*args, **kwargs):
         email = get_current_user_email()
         if not email:
             return jsonify({"error": "No autorizado. Debes iniciar sesión."}), 401
+        # Bloquear usuarios baneados (aunque tengan sesión válida)
+        conn = get_db_connection()
+        row = conn.execute('SELECT is_banned FROM users WHERE email = ?', (email,)).fetchone()
+        conn.close()
+        if row and row['is_banned']:
+            return jsonify({"error": "Tu cuenta ha sido suspendida."}), 403
         g.current_user_email = email
         return f(*args, **kwargs)
     return decorated
@@ -448,6 +457,191 @@ def admin_check():
     return jsonify({"is_admin": is_user_admin(g.current_user_email)}), 200
 
 
+# ── ADMIN: GESTIÓN DE LIBROS ──────────────────────────────────────────────
+
+@app.route('/api/admin/books', methods=['GET'])
+@require_admin
+def admin_list_books():
+    """Lista TODOS los libros (incluidos los ocultos) para moderación."""
+    conn = get_db_connection()
+    books = conn.execute('''
+        SELECT b.id, b.title, b.author, b.author_email, b.is_hidden, b.is_adult,
+               b.created_at, COUNT(ch.id) as chapter_count
+        FROM books b
+        LEFT JOIN chapters ch ON b.id = ch.book_id
+        GROUP BY b.id
+        ORDER BY b.created_at DESC
+    ''').fetchall()
+    conn.close()
+    return jsonify([dict(b) for b in books]), 200
+
+
+@app.route('/api/admin/books/<int:book_id>/hide', methods=['POST'])
+@require_admin
+def admin_toggle_book_hidden(book_id):
+    """Oculta o muestra un libro (borrado suave, reversible)."""
+    data = request.get_json() or {}
+    hidden = 1 if data.get('hidden') else 0
+    conn = get_db_connection()
+    conn.execute('UPDATE books SET is_hidden = ? WHERE id = ?', (hidden, book_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "ok", "is_hidden": hidden}), 200
+
+
+# ── ADMIN: GESTIÓN DE COMENTARIOS ─────────────────────────────────────────
+
+@app.route('/api/admin/comments', methods=['GET'])
+@require_admin
+def admin_list_comments():
+    """Lista los comentarios más recientes para moderación."""
+    conn = get_db_connection()
+    comments = conn.execute('''
+        SELECT c.id, c.book_id, c.user_name, c.user_email, c.text,
+               c.timestamp, c.is_hidden, b.title as book_title
+        FROM comments c
+        LEFT JOIN books b ON c.book_id = b.id
+        ORDER BY c.timestamp DESC
+        LIMIT 100
+    ''').fetchall()
+    conn.close()
+    return jsonify([dict(c) for c in comments]), 200
+
+
+@app.route('/api/admin/comments/<int:comment_id>/hide', methods=['POST'])
+@require_admin
+def admin_toggle_comment_hidden(comment_id):
+    """Oculta o muestra un comentario (borrado suave, reversible)."""
+    data = request.get_json() or {}
+    hidden = 1 if data.get('hidden') else 0
+    conn = get_db_connection()
+    conn.execute('UPDATE comments SET is_hidden = ? WHERE id = ?', (hidden, comment_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "ok", "is_hidden": hidden}), 200
+
+
+# ── ADMIN: GESTIÓN DE USUARIOS ────────────────────────────────────────────
+
+@app.route('/api/admin/users', methods=['GET'])
+@require_admin
+def admin_list_users():
+    """Lista todos los usuarios con su cantidad de libros."""
+    conn = get_db_connection()
+    users = conn.execute('''
+        SELECT u.email, u.nickname, u.is_admin, u.is_banned, u.created_at,
+               COUNT(b.id) as book_count
+        FROM users u
+        LEFT JOIN books b ON u.email = b.author_email
+        GROUP BY u.email
+        ORDER BY u.created_at DESC
+    ''').fetchall()
+    conn.close()
+    # Marcar quién es admin de fábrica (no se le puede quitar el admin)
+    result = []
+    for u in users:
+        d = dict(u)
+        d['is_factory_admin'] = u['email'].lower() in ADMIN_EMAILS
+        result.append(d)
+    return jsonify(result), 200
+
+
+@app.route('/api/admin/users/ban', methods=['POST'])
+@require_admin
+def admin_toggle_ban():
+    """Banea o desbanea un usuario por email."""
+    data = request.get_json() or {}
+    target_email = (data.get('email') or '').strip().lower()
+    banned = 1 if data.get('banned') else 0
+
+    if not target_email:
+        return jsonify({"error": "Email requerido"}), 400
+    # No se puede banear a un admin de fábrica
+    if target_email in ADMIN_EMAILS:
+        return jsonify({"error": "No se puede banear a un administrador principal."}), 403
+
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET is_banned = ? WHERE email = ?', (banned, target_email))
+    # Si se banea, cerrar todas sus sesiones activas (lo expulsa)
+    if banned:
+        conn.execute('DELETE FROM sessions WHERE user_email = ?', (target_email,))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "ok", "is_banned": banned}), 200
+
+
+@app.route('/api/admin/users/admin', methods=['POST'])
+@require_admin
+def admin_toggle_admin():
+    """Da o quita permisos de admin a un usuario por email."""
+    data = request.get_json() or {}
+    target_email = (data.get('email') or '').strip().lower()
+    make_admin = 1 if data.get('is_admin') else 0
+
+    if not target_email:
+        return jsonify({"error": "Email requerido"}), 400
+    # No se le puede quitar el admin a un admin de fábrica
+    if target_email in ADMIN_EMAILS and not make_admin:
+        return jsonify({"error": "No se puede quitar el admin a un administrador principal."}), 403
+
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET is_admin = ? WHERE email = ?', (make_admin, target_email))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "ok", "is_admin": make_admin}), 200
+
+
+@app.route('/api/admin/stats', methods=['GET'])
+@require_admin
+def admin_stats():
+    """Métricas generales de la plataforma para el dashboard de admin."""
+    conn = get_db_connection()
+
+    # Totales
+    total_users = conn.execute('SELECT COUNT(*) AS c FROM users').fetchone()['c']
+    total_books = conn.execute('SELECT COUNT(*) AS c FROM books').fetchone()['c']
+    total_chapters = conn.execute('SELECT COUNT(*) AS c FROM chapters').fetchone()['c']
+    total_comments = conn.execute('SELECT COUNT(*) AS c FROM comments').fetchone()['c']
+    total_views = conn.execute('SELECT COALESCE(SUM(views), 0) AS s FROM books').fetchone()['s']
+    hidden_books = conn.execute('SELECT COUNT(*) AS c FROM books WHERE is_hidden = 1').fetchone()['c']
+    banned_users = conn.execute('SELECT COUNT(*) AS c FROM users WHERE is_banned = 1').fetchone()['c']
+    adult_books = conn.execute('SELECT COUNT(*) AS c FROM books WHERE is_adult = 1').fetchone()['c']
+
+    # Libros más vistos (top 5)
+    top_viewed = conn.execute('''
+        SELECT title, author, views FROM books
+        WHERE is_hidden = 0
+        ORDER BY views DESC LIMIT 5
+    ''').fetchall()
+
+    # Libros creados por mes (últimos 6 meses) — para el gráfico
+    by_month = conn.execute('''
+        SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count
+        FROM books
+        WHERE created_at IS NOT NULL
+        GROUP BY month
+        ORDER BY month DESC
+        LIMIT 6
+    ''').fetchall()
+
+    conn.close()
+
+    return jsonify({
+        "totals": {
+            "users": total_users,
+            "books": total_books,
+            "chapters": total_chapters,
+            "comments": total_comments,
+            "views": total_views,
+            "hidden_books": hidden_books,
+            "banned_users": banned_users,
+            "adult_books": adult_books,
+        },
+        "top_viewed": [dict(r) for r in top_viewed],
+        "by_month": [dict(r) for r in reversed(by_month)],  # orden cronológico
+    }), 200
+
+
 # =============================================================================
 # LIBROS (PÚBLICO — lectura libre, escritura protegida)
 # =============================================================================
@@ -470,6 +664,7 @@ def get_recently_updated():
         FROM books b
         LEFT JOIN ratings r  ON b.id = r.book_id
         LEFT JOIN chapters ch ON b.id = ch.book_id
+        WHERE b.is_hidden = 0
         GROUP BY b.id
         HAVING last_chapter_date IS NOT NULL
         ORDER BY last_chapter_date DESC
@@ -498,7 +693,7 @@ def get_featured_ids():
             should_update = True
 
     if should_update:
-        random_books = conn.execute('SELECT id FROM books ORDER BY RANDOM() LIMIT 5').fetchall()
+        random_books = conn.execute('SELECT id FROM books WHERE is_hidden = 0 ORDER BY RANDOM() LIMIT 5').fetchall()
         new_ids = [r['id'] for r in random_books]
         if new_ids:
             conn.execute(
@@ -559,7 +754,9 @@ def handle_books():
             if err:
                 return jsonify({"error": err}), 400
 
-        filename = "default_cover.jpeg"
+        # Sin portada = None (NULL en la base). Así el frontend muestra
+        # el recuadro con el título del libro en vez de una imagen genérica.
+        filename = None
         file = request.files.get('cover')
         if file and file.filename != '':
             try:
@@ -574,7 +771,7 @@ def handle_books():
                 )
             except Exception as e:
                 print(f"[Cover] Error procesando imagen: {e}")
-                filename = "default_cover.jpeg"
+                filename = None
 
         # #+18 — leer el flag de contenido adulto del form (checkbox)
         is_adult = 1 if request.form.get('is_adult') in ('1', 'true', 'True', 'on') else 0
@@ -605,11 +802,12 @@ def handle_books():
     if 'page' in request.args:
         limit, offset, page, per_page = get_pagination_params()
 
-        total = conn.execute('SELECT COUNT(*) AS c FROM books').fetchone()['c']
+        total = conn.execute('SELECT COUNT(*) AS c FROM books WHERE is_hidden = 0').fetchone()['c']
         books = conn.execute('''
             SELECT b.*, AVG(r.score) as avg_rating, COUNT(r.score) as vote_count
             FROM books b
             LEFT JOIN ratings r ON b.id = r.book_id
+            WHERE b.is_hidden = 0
             GROUP BY b.id
             ORDER BY b.id DESC
             LIMIT ? OFFSET ?
@@ -629,6 +827,7 @@ def handle_books():
         SELECT b.*, AVG(r.score) as avg_rating, COUNT(r.score) as vote_count
         FROM books b
         LEFT JOIN ratings r ON b.id = r.book_id
+        WHERE b.is_hidden = 0
         GROUP BY b.id
         ORDER BY b.id DESC
     ''').fetchall()
@@ -643,6 +842,14 @@ def get_single_book(book_id):
     if not book:
         conn.close()
         return jsonify({"error": "Libro no encontrado"}), 404
+
+    # Si el libro está oculto, solo un admin puede verlo (para revisarlo).
+    # El público recibe 404 como si no existiera.
+    if book['is_hidden']:
+        requester = get_current_user_email()
+        if not is_user_admin(requester):
+            conn.close()
+            return jsonify({"error": "Libro no encontrado"}), 404
 
     stats = conn.execute(
         'SELECT AVG(score) as avg, COUNT(*) as count FROM ratings WHERE book_id = ?',
@@ -960,7 +1167,7 @@ def handle_comments(book_id):
         FROM comments c
         LEFT JOIN users u ON c.user_email = u.email
         LEFT JOIN ratings r ON c.user_email = r.user_email AND c.book_id = r.book_id
-        WHERE c.book_id = ?
+        WHERE c.book_id = ? AND c.is_hidden = 0
     '''
     params = [book_id]
     if chapter_id == 'null':
@@ -1232,10 +1439,11 @@ def get_top_rankings():
     query = '''
         SELECT b.*, AVG(r.score) as avg_rating, COUNT(r.score) as vote_count
         FROM books b LEFT JOIN ratings r ON b.id = r.book_id
+        WHERE b.is_hidden = 0
     '''
     params = []
     if tag:
-        query += ' WHERE b.tags LIKE ?'
+        query += ' AND b.tags LIKE ?'
         params.append(f'%{tag}%')
     query += ' GROUP BY b.id ORDER BY avg_rating DESC, vote_count DESC'
 
@@ -1279,7 +1487,7 @@ def advanced_search():
         SELECT b.*, AVG(r.score) as avg_rating, COUNT(r.score) as vote_count
         FROM books b
         LEFT JOIN ratings r ON b.id = r.book_id
-        WHERE (b.title LIKE ? OR b.author LIKE ?)
+        WHERE b.is_hidden = 0 AND (b.title LIKE ? OR b.author LIKE ?)
     '''
     params = [f'%{query_text}%', f'%{query_text}%']
 

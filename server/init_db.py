@@ -39,7 +39,8 @@ def init_db():
         views        INTEGER DEFAULT 0,
         book_status  TEXT    DEFAULT 'ongoing',
         created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
-        is_adult     INTEGER DEFAULT 0
+        is_adult     INTEGER DEFAULT 0,
+        is_hidden    INTEGER DEFAULT 0
     )''')
 
     # ── 3. CAPÍTULOS ───────────────────────────────────────────────────────────
@@ -80,7 +81,8 @@ def init_db():
         user_name  TEXT,
         user_email TEXT,
         text       TEXT,
-        timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
+        timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_hidden  INTEGER DEFAULT 0
     )''')
 
     # ── 6. LOGS DE VISTAS ──────────────────────────────────────────────────────
