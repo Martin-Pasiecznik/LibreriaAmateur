@@ -14,6 +14,10 @@ const AdminPanel = ({ user, darkMode }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Buscador y filtro de estado (se reinician al cambiar de pestaña)
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   const theme = {
     bg: darkMode ? '#0a0b10' : '#f4f0ea',
     card: darkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(255, 255, 255, 0.7)',
@@ -33,8 +37,38 @@ const AdminPanel = ({ user, darkMode }) => {
 
   useEffect(() => {
     if (access !== 'allowed') return;
+    setSearch('');
+    setStatusFilter('all');
     loadData();
   }, [access, tab]);
+
+  // Filtrado en vivo (frontend): combina texto de búsqueda + filtro de estado
+  const filteredBooks = books.filter(b => {
+    const q = search.toLowerCase();
+    const matchText = !q || (b.title || '').toLowerCase().includes(q) || (b.author || '').toLowerCase().includes(q);
+    const matchStatus = statusFilter === 'all'
+      || (statusFilter === 'hidden' && b.is_hidden)
+      || (statusFilter === 'visible' && !b.is_hidden);
+    return matchText && matchStatus;
+  });
+
+  const filteredComments = comments.filter(c => {
+    const q = search.toLowerCase();
+    const matchText = !q || (c.text || '').toLowerCase().includes(q) || (c.user_name || '').toLowerCase().includes(q);
+    const matchStatus = statusFilter === 'all'
+      || (statusFilter === 'hidden' && c.is_hidden)
+      || (statusFilter === 'visible' && !c.is_hidden);
+    return matchText && matchStatus;
+  });
+
+  const filteredUsers = users.filter(u => {
+    const q = search.toLowerCase();
+    const matchText = !q || (u.email || '').toLowerCase().includes(q) || (u.nickname || '').toLowerCase().includes(q);
+    const matchStatus = statusFilter === 'all'
+      || (statusFilter === 'banned' && u.is_banned)
+      || (statusFilter === 'admins' && u.is_admin);
+    return matchText && matchStatus;
+  });
 
   const loadData = () => {
     setLoading(true);
@@ -138,6 +172,42 @@ const AdminPanel = ({ user, darkMode }) => {
         ))}
       </div>
 
+      {/* Buscador + filtros de estado (no se muestran en Resumen) */}
+      {tab !== 'stats' && (
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={tab === 'books' ? 'Buscar por título o autor...' : tab === 'comments' ? 'Buscar por texto o autor...' : 'Buscar por nombre o email...'}
+            style={{
+              flex: 1, minWidth: '200px', padding: '10px 16px', borderRadius: '10px',
+              border: `1px solid ${theme.border}`, background: theme.card, color: theme.textMain,
+              fontSize: '0.9rem', outline: 'none',
+            }}
+          />
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {(tab === 'users'
+              ? [['all', 'Todos'], ['banned', 'Baneados'], ['admins', 'Admins']]
+              : [['all', 'Todos'], ['visible', 'Visibles'], ['hidden', 'Ocultos']]
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setStatusFilter(key)}
+                style={{
+                  padding: '9px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700,
+                  border: `1px solid ${statusFilter === key ? theme.accent : theme.border}`,
+                  background: statusFilter === key ? theme.accent : 'transparent',
+                  color: statusFilter === key ? (darkMode ? '#0a0b10' : '#fff') : theme.textMuted,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading && <p style={{ color: theme.textMuted, textAlign: 'center', padding: '40px' }}>Cargando...</p>}
 
       {/* ── RESUMEN / ESTADÍSTICAS ── */}
@@ -197,8 +267,8 @@ const AdminPanel = ({ user, darkMode }) => {
 
       {!loading && tab === 'books' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {books.length === 0 && <p style={{ color: theme.textMuted, textAlign: 'center', padding: '40px' }}>No hay libros.</p>}
-          {books.map(book => (
+          {filteredBooks.length === 0 && <p style={{ color: theme.textMuted, textAlign: 'center', padding: '40px' }}>No hay libros que coincidan.</p>}
+          {filteredBooks.map(book => (
             <div key={book.id} className="admin-row" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px',
               padding: '16px 20px', borderRadius: '14px', background: theme.card,
@@ -228,8 +298,8 @@ const AdminPanel = ({ user, darkMode }) => {
 
       {!loading && tab === 'comments' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {comments.length === 0 && <p style={{ color: theme.textMuted, textAlign: 'center', padding: '40px' }}>No hay comentarios.</p>}
-          {comments.map(c => (
+          {filteredComments.length === 0 && <p style={{ color: theme.textMuted, textAlign: 'center', padding: '40px' }}>No hay comentarios que coincidan.</p>}
+          {filteredComments.map(c => (
             <div key={c.id} className="admin-row" style={{
               display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '15px',
               padding: '16px 20px', borderRadius: '14px', background: theme.card,
@@ -256,8 +326,8 @@ const AdminPanel = ({ user, darkMode }) => {
 
       {!loading && tab === 'users' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {users.length === 0 && <p style={{ color: theme.textMuted, textAlign: 'center', padding: '40px' }}>No hay usuarios.</p>}
-          {users.map(u => (
+          {filteredUsers.length === 0 && <p style={{ color: theme.textMuted, textAlign: 'center', padding: '40px' }}>No hay usuarios que coincidan.</p>}
+          {filteredUsers.map(u => (
             <div key={u.email} className="admin-row" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px',
               padding: '16px 20px', borderRadius: '14px', background: theme.card,
