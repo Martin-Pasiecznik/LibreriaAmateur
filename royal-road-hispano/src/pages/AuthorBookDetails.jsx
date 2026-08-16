@@ -25,7 +25,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteBookModal, setShowDeleteBookModal] = useState(false);
-  const [editData, setEditData] = useState({ title: '', description: '', tags: '' });
+  const [editData, setEditData] = useState({ title: '', description: '', tags: '', is_adult: 0 });
   const [newCover, setNewCover] = useState(null);
   const [deletingBook, setDeletingBook] = useState(false);
   const [deletingChapterId, setDeletingChapterId] = useState(null);
@@ -84,7 +84,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
       setBook(bookData);
       setChapters(Array.isArray(chaptersData) ? chaptersData : []);
       setStats(statsData);
-      setEditData({ title: bookData.title, description: bookData.description, tags: bookData.tags || '' });
+      setEditData({ title: bookData.title, description: bookData.description, tags: bookData.tags || '', is_adult: bookData.is_adult || 0 });
       setBookStatus(bookData.book_status || 'ongoing'); // default: en progreso
     } catch (err) {
       console.error('Error cargando datos:', err);
@@ -102,6 +102,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
     formData.append('title',       editData.title);
     formData.append('description', editData.description);
     formData.append('tags',        editData.tags);
+    formData.append('is_adult',    editData.is_adult ? '1' : '0');
     if (newCover) formData.append('cover', newCover);
 
     // FormData → solo el header Authorization, sin Content-Type
@@ -353,6 +354,31 @@ const AuthorBookDetails = ({ user, darkMode }) => {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* +18 — contenido adulto */}
+              <div
+                onClick={() => setEditData({ ...editData, is_adult: editData.is_adult ? 0 : 1 })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer',
+                  padding: '14px 16px', marginBottom: '30px', borderRadius: '12px',
+                  border: `1px solid ${editData.is_adult ? '#e05252' : theme.border}`,
+                  backgroundColor: editData.is_adult ? 'rgba(224,82,82,0.08)' : 'transparent',
+                  transition: '0.2s',
+                }}
+              >
+                <div style={{
+                  width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
+                  border: `2px solid ${editData.is_adult ? '#e05252' : theme.textMuted}`,
+                  backgroundColor: editData.is_adult ? '#e05252' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', fontSize: '0.8rem', fontWeight: 800,
+                }}>
+                  {editData.is_adult ? '✓' : ''}
+                </div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: theme.textMain }}>
+                  Contenido para adultos (+18)
+                </div>
               </div>
 
               <div style={{ textAlign: 'center', marginBottom: '30px' }}>

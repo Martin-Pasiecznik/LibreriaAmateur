@@ -17,7 +17,9 @@ def init_db():
         email       TEXT PRIMARY KEY,
         nickname    TEXT,
         profile_pic TEXT,
-        created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_admin    INTEGER DEFAULT 0,
+        is_banned   INTEGER DEFAULT 0
     )''')
 
     # ── 2. LIBROS ──────────────────────────────────────────────────────────────

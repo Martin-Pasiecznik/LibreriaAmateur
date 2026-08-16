@@ -7,6 +7,7 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
   const [authorName, setAuthorName] = useState(user?.name || '');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
+  const [isAdult, setIsAdult] = useState(false);
   const [cover, setCover] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
   const suggestedGenres = [
   // Géneros principales
   "Fantasía", "Romance", "Terror", "Misterio", "Ciencia Ficción", "Aventura",
-  "Drama", "Acción", "Comedia", "Thriller",
+  "Drama", "Acción", "Comedia", "Thriller", "+18",
 
   // Subgéneros populares en webnovelas
   "Isekai", "LitRPG", "Magia", "Mazmorra", "Reencarnación", "Regresión",
@@ -74,6 +75,7 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
     formData.append('title', title);
     formData.append('author', authorName.trim() || user.name);
     formData.append('description', description);
+    formData.append('is_adult', isAdult ? '1' : '0');
     // author_email ya no se usa: el backend lo toma del token
     formData.append('tags', tags);
     if (cover) formData.append('cover', cover);
@@ -134,7 +136,7 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
             required
           />
           <p style={{ fontSize: '0.75rem', color: theme.textMuted, marginTop: '-18px', marginBottom: '25px' }}>
-            Por defecto es tu nombre de cuenta, pero podés cambiarlo por un pseudónimo. Así figurará en la obra.
+            Por defecto es tu nombre de cuenta, pero puedes cambiarlo por un pseudónimo. Así figurará en la obra.
           </p>
 
           <label style={labelStyle(theme)}>TÍTULO DE LA OBRA</label>
@@ -169,6 +171,36 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
                 + {genre}
               </button>
             ))}
+          </div>
+
+          {/* +18 — contenido adulto */}
+          <div
+            onClick={() => setIsAdult(!isAdult)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer',
+              padding: '15px 18px', marginBottom: '30px', borderRadius: '12px',
+              border: `1px solid ${isAdult ? '#e05252' : theme.border}`,
+              backgroundColor: isAdult ? 'rgba(224,82,82,0.08)' : 'transparent',
+              transition: '0.2s',
+            }}
+          >
+            <div style={{
+              width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
+              border: `2px solid ${isAdult ? '#e05252' : theme.textMuted}`,
+              backgroundColor: isAdult ? '#e05252' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontSize: '0.8rem', fontWeight: 800,
+            }}>
+              {isAdult && '✓'}
+            </div>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: theme.textMain }}>
+                Contenido para adultos (+18)
+              </div>
+              <div style={{ fontSize: '0.75rem', color: theme.textMuted, marginTop: '2px' }}>
+                Marcá esta casilla si tu obra contiene material explícito o no apto para menores.
+              </div>
+            </div>
           </div>
 
           <div style={{ textAlign: 'center', marginBottom: '30px' }}>

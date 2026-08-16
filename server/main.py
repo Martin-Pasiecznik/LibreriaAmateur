@@ -76,6 +76,13 @@ GOOGLE_CLIENT_ID = os.environ.get(
 # se setea la variable de entorno SERVER_URL con el dominio real.
 SERVER_URL = os.environ.get('SERVER_URL', 'http://127.0.0.1:5001')
 
+# Emails que SIEMPRE son admin ("de fábrica"), sin importar la base de datos.
+# Se pueden definir por variable de entorno ADMIN_EMAILS (separados por coma),
+# o quedan estos por default. Al hacer login, estos emails se marcan is_admin=1.
+# Como están en el código, nunca podés perder el acceso admin aunque falle la DB.
+_default_admins = "martinpasiecznik@gmail.com"
+ADMIN_EMAILS = [e.strip().lower() for e in os.environ.get('ADMIN_EMAILS', _default_admins).split(',') if e.strip()]
+
 # Rutas ABSOLUTAS calculadas desde la ubicación de este archivo.
 # Así funcionan sin importar desde qué carpeta se ejecute la app
 # (en local Flask corre desde server/, pero en producción el WSGI
@@ -113,7 +120,9 @@ def init_db_internal():
         email TEXT PRIMARY KEY,
         nickname TEXT,
         profile_pic TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_admin INTEGER DEFAULT 0,
+        is_banned INTEGER DEFAULT 0)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS books (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -315,6 +324,37 @@ def require_auth(f):
     return decorated
 
 
+def is_user_admin(email):
+    """Retorna True si el email es admin (de fábrica o marcado en la DB)."""
+    if not email:
+        return False
+    if email.lower() in ADMIN_EMAILS:
+        return True
+    conn = get_db_connection()
+    row = conn.execute('SELECT is_admin FROM users WHERE email = ?', (email,)).fetchone()
+    conn.close()
+    return bool(row['is_admin']) if row else False
+
+
+def require_admin(f):
+    """
+    Decorador que protege endpoints de administración: rechaza con 401
+    si no hay sesión, y con 403 si el usuario no es admin.
+    La verificación es en el BACKEND — esconder el botón en el frontend
+    no alcanza; acá está el control real.
+    """
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        email = get_current_user_email()
+        if not email:
+            return jsonify({"error": "No autorizado. Debes iniciar sesión."}), 401
+        if not is_user_admin(email):
+            return jsonify({"error": "Acceso denegado. Se requieren permisos de administrador."}), 403
+        g.current_user_email = email
+        return f(*args, **kwargs)
+    return decorated
+
+
 # Helpers de propiedad
 
 def get_book_author_email(book_id: int):
@@ -345,13 +385,33 @@ def auth_verify():
     if not email:
         return jsonify({"error": "Token de Google inválido o expirado"}), 401
 
+    conn = get_db_connection()
+
+    # ¿Este email es admin de fábrica? (definido en el código)
+    is_factory_admin = email.lower() in ADMIN_EMAILS
+
+    # Asegurar que el usuario exista y aplicar el admin de fábrica.
+    # Si el email está en ADMIN_EMAILS, se fuerza is_admin=1 en cada login
+    # (así nunca perdés el acceso admin aunque la DB se recree).
+    conn.execute('''
+        INSERT INTO users (email, is_admin) VALUES (?, ?)
+        ON CONFLICT(email) DO UPDATE SET is_admin = MAX(is_admin, ?)
+    ''', (email, 1 if is_factory_admin else 0, 1 if is_factory_admin else 0))
+
+    # Verificar si el usuario está baneado
+    urow = conn.execute('SELECT is_admin, is_banned FROM users WHERE email = ?', (email,)).fetchone()
+    if urow and urow['is_banned']:
+        conn.close()
+        return jsonify({"error": "Tu cuenta ha sido suspendida."}), 403
+
+    is_admin = bool(urow['is_admin']) if urow else False
+
     # Generar session token seguro (64 chars hex = 256 bits de entropía)
     session_token = secrets.token_hex(32)
     # #6 — UTC para consistencia: SQLite usa datetime('now') que es UTC,
     # así que las expiraciones deben calcularse en UTC también.
     expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=30)
 
-    conn = get_db_connection()
     # Limpiar sesiones anteriores del mismo usuario para no acumular
     conn.execute('DELETE FROM sessions WHERE user_email = ?', (email,))
     conn.execute(
@@ -364,6 +424,7 @@ def auth_verify():
     return jsonify({
         "session_token": session_token,
         "email": email,
+        "is_admin": is_admin,
         "expires_at": expires_at.isoformat()
     }), 200
 
@@ -378,6 +439,13 @@ def auth_logout():
     conn.commit()
     conn.close()
     return jsonify({"status": "logged_out"}), 200
+
+
+@app.route('/api/admin/check', methods=['GET'])
+@require_auth
+def admin_check():
+    """El frontend usa esto para saber si el usuario actual es admin."""
+    return jsonify({"is_admin": is_user_admin(g.current_user_email)}), 200
 
 
 # =============================================================================

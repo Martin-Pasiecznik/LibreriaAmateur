@@ -20,6 +20,7 @@ import AuthorBookDetails from "./pages/AuthorBookDetails";
 import EditChapter from "./pages/EditChapter";
 import MyLibrary from "./pages/MyLibrary";
 import AdvancedSearch from "./pages/AdvancedSearch";
+import AdminPanel from "./pages/AdminPanel";
 import CoverImage from "./components/CoverImage";
 
 // ─────────────────────────────────────────────
@@ -221,7 +222,7 @@ const AuthButton = ({ onSuccess, darkMode }) => {
         throw new Error(err.error || "Verificación fallida");
       }
 
-      const { session_token } = await res.json();
+      const { session_token, is_admin } = await res.json();
 
       // El objeto de usuario que circula por toda la app
       onSuccess({
@@ -229,6 +230,7 @@ const AuthButton = ({ onSuccess, darkMode }) => {
         name: decoded.name,
         picture: decoded.picture,
         session_token, // ← token real, seguro, con expiración
+        is_admin: is_admin || false, // ← flag de administrador
       });
     } catch (err) {
       console.error("[Auth] Error verificando sesión con el servidor:", err.message);
@@ -470,6 +472,11 @@ function App() {
                       <Link to="/dashboard" style={{ color: theme.textMain, textDecoration: "none", fontSize: "0.85rem", fontWeight: 600, opacity: 0.7 }}>
                         Mi Studio
                       </Link>
+                      {user.is_admin && (
+                        <Link to="/admin" style={{ color: theme.accent, textDecoration: "none", fontSize: "0.85rem", fontWeight: 700 }}>
+                          Admin
+                        </Link>
+                      )}
                     </>
                   )}
                 </div>
@@ -568,6 +575,11 @@ function App() {
                     <Link to="/dashboard" style={{ color: theme.textMain, textDecoration: "none", fontSize: "1rem", fontWeight: 600 }}>
                       Mi Studio
                     </Link>
+                    {user.is_admin && (
+                      <Link to="/admin" style={{ color: theme.accent, textDecoration: "none", fontSize: "1rem", fontWeight: 700 }}>
+                        Admin
+                      </Link>
+                    )}
                   </>
                 )}
 
@@ -756,6 +768,7 @@ function App() {
             <Route path="/dashboard/book/:id" element={<AuthorBookDetails user={user} darkMode={darkMode} />} />
             <Route path="/edit-chapter/:chapterId" element={<EditChapter darkMode={darkMode} user={user} />} />
             <Route path="/search" element={<AdvancedSearch darkMode={darkMode} />} />
+            <Route path="/admin" element={<AdminPanel user={user} darkMode={darkMode} />} />
           </Routes>
         </div>
       </div>

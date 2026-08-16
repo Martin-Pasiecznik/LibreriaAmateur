@@ -210,6 +210,18 @@ const BookDetail = ({ user, darkMode }) => {
           <h1 className="bd-title" style={{ fontSize: '3.5rem', margin: '0 0 10px 0', fontFamily: "'Crimson Pro', serif", fontWeight: 400, letterSpacing: '-1px' }}>{book.title}</h1>
           <p style={{ color: theme.accent, fontSize: '1.3rem', marginBottom: '20px', fontWeight: 500, fontStyle: 'italic', fontFamily: "'Crimson Pro', serif" }}>Autor: {book.author}</p>
 
+          {/* +18 — distintivo de contenido adulto */}
+          {book.is_adult ? (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '5px 14px', marginBottom: '20px', borderRadius: '8px',
+              backgroundColor: 'rgba(224,82,82,0.12)', border: '1px solid #e05252',
+            }}>
+              <span style={{ color: '#e05252', fontWeight: 800, fontSize: '0.9rem', letterSpacing: '0.5px' }}>+18</span>
+              <span style={{ color: theme.textMuted, fontSize: '0.8rem' }}>Contenido para adultos</span>
+            </div>
+          ) : null}
+
           {/* ══ ESTADO + FECHA ══════════════════════════════════════════════ */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', marginBottom: '28px', flexWrap: 'wrap' }}>
 
