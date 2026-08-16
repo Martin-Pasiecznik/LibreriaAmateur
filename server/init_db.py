@@ -24,6 +24,7 @@ def init_db():
     # author_note guarda el filename de la portada (ej: "cover_1234.jpg").
     # book_status: 'ongoing' | 'completed' | 'paused' | 'abandoned'
     # created_at: fecha de creación del libro (para ordenar por "más nuevos").
+    # is_adult: 1 si el contenido es para adultos (+18), 0 si no.
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS books (
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +36,8 @@ def init_db():
         tags         TEXT,
         views        INTEGER DEFAULT 0,
         book_status  TEXT    DEFAULT 'ongoing',
-        created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_adult     INTEGER DEFAULT 0
     )''')
 
     # ── 3. CAPÍTULOS ───────────────────────────────────────────────────────────

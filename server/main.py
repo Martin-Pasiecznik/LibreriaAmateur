@@ -125,7 +125,8 @@ def init_db_internal():
         tags TEXT,
         views INTEGER DEFAULT 0,
         book_status TEXT DEFAULT 'ongoing',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_adult INTEGER DEFAULT 0)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS chapters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -507,17 +508,21 @@ def handle_books():
                 print(f"[Cover] Error procesando imagen: {e}")
                 filename = "default_cover.jpeg"
 
+        # #+18 — leer el flag de contenido adulto del form (checkbox)
+        is_adult = 1 if request.form.get('is_adult') in ('1', 'true', 'True', 'on') else 0
+
         conn = get_db_connection()
         conn.execute('''
-            INSERT INTO books (title, author, author_email, description, author_note, tags, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+            INSERT INTO books (title, author, author_email, description, author_note, tags, created_at, is_adult)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)
         ''', (
             title,
             request.form.get('author'),
             email,  # Email verificado — nunca del form
             description,
             filename,
-            tags
+            tags,
+            is_adult
         ))
         conn.commit()
         conn.close()
@@ -651,6 +656,9 @@ def update_book_details(book_id):
         if err:
             return jsonify({"error": err}), 400
 
+    # #+18 — flag de contenido adulto (checkbox del form)
+    is_adult = 1 if request.form.get('is_adult') in ('1', 'true', 'True', 'on') else 0
+
     conn = get_db_connection()
     if file and file.filename != '':
         try:
@@ -664,19 +672,19 @@ def update_book_details(book_id):
                 "JPEG", quality=82, optimize=True
             )
             conn.execute(
-                'UPDATE books SET title = ?, description = ?, tags = ?, author_note = ? WHERE id = ?',
-                (title, description, tags, filename, book_id)
+                'UPDATE books SET title = ?, description = ?, tags = ?, author_note = ?, is_adult = ? WHERE id = ?',
+                (title, description, tags, filename, is_adult, book_id)
             )
         except Exception as e:
             print(f"[Cover] Error procesando imagen: {e}")
             conn.execute(
-                'UPDATE books SET title = ?, description = ?, tags = ? WHERE id = ?',
-                (title, description, tags, book_id)
+                'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ? WHERE id = ?',
+                (title, description, tags, is_adult, book_id)
             )
     else:
         conn.execute(
-            'UPDATE books SET title = ?, description = ?, tags = ? WHERE id = ?',
-            (title, description, tags, book_id)
+            'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ? WHERE id = ?',
+            (title, description, tags, is_adult, book_id)
         )
 
     conn.commit()
