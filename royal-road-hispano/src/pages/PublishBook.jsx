@@ -133,6 +133,7 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
             value={authorName}
             onChange={e => setAuthorName(e.target.value)}
             style={inputStyle(theme)}
+            maxLength={50}
             required
           />
           <p style={{ fontSize: '0.75rem', color: theme.textMuted, marginTop: '-18px', marginBottom: '25px' }}>
@@ -145,6 +146,7 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
             value={title}
             onChange={e => setTitle(e.target.value)}
             style={inputStyle(theme)}
+            maxLength={100}
             required
           />
 
@@ -153,9 +155,13 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
             placeholder="Escribe una breve sinopsis para atraer a tus lectores..."
             value={description}
             onChange={e => setDescription(e.target.value)}
-            style={{ ...inputStyle(theme), height: '120px', resize: 'none' }}
+            style={{ ...inputStyle(theme), height: '120px', resize: 'none', marginBottom: '6px' }}
+            maxLength={2000}
             required
           />
+          <div style={{ fontSize: '0.7rem', color: theme.textMuted, textAlign: 'right', marginBottom: '25px' }}>
+            {description.length} / 2000
+          </div>
 
           <label style={labelStyle(theme)}>GÉNEROS Y ETIQUETAS</label>
           <input

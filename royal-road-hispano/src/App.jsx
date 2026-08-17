@@ -708,16 +708,16 @@ function App() {
                       {recentlyUpdated.map((book) => (
                         <Link key={`recent-${book.id}`} to={`/book/${book.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                           <div className="recent-item" style={{
-                            display: "flex", gap: "15px", padding: "15px", borderRadius: "16px",
+                            display: "flex", gap: "18px", padding: "16px", borderRadius: "16px",
                             alignItems: "center", backgroundColor: theme.card, border: `1px solid ${theme.border}`,
                           }}>
-                            <div style={{ width: "60px", height: "80px", flexShrink: 0, borderRadius: "6px", overflow: "hidden" }}>
+                            <div style={{ width: "90px", height: "130px", flexShrink: 0, borderRadius: "8px", overflow: "hidden" }}>
                               <CoverImage
                                 authorNote={book.author_note}
                                 title={book.title}
                                 theme={theme}
                                 darkMode={darkMode}
-                                titleSize="0.5rem"
+                                titleSize="0.7rem"
                               />
                             </div>
                             <div style={{ overflow: "hidden" }}>

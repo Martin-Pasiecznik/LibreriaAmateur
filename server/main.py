@@ -101,8 +101,9 @@ DB_PATH = os.path.join(BASE_DIR, "database.db")
 # #3 — Límites de longitud de texto (en caracteres). Evitan que alguien
 # sature la base con textos gigantes. Ajustables según necesites.
 MAX_CHAPTER_CHARS = 100_000   # ~20.000 palabras, un capítulo muy largo
-MAX_TITLE_CHARS   = 300
-MAX_DESC_CHARS    = 5_000
+MAX_TITLE_CHARS   = 100        # título de novela
+MAX_DESC_CHARS    = 2_000      # sinopsis (varios párrafos)
+MAX_AUTHOR_CHARS  = 50         # nombre / pseudónimo del autor
 MAX_COMMENT_CHARS = 3_000
 MAX_TAGS_CHARS    = 500
 MAX_NICKNAME_CHARS = 100
@@ -749,6 +750,7 @@ def handle_books():
             (title, MAX_TITLE_CHARS, 'título'),
             (description, MAX_DESC_CHARS, 'descripción'),
             (tags, MAX_TAGS_CHARS, 'etiquetas'),
+            (request.form.get('author'), MAX_AUTHOR_CHARS, 'nombre de autor'),
         ]:
             err = check_length(value, limit, name)
             if err:

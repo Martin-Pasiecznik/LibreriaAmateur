@@ -315,6 +315,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
                 value={editData.title}
                 onChange={e => setEditData({ ...editData, title: e.target.value })}
                 style={modalInputStyle(theme, darkMode)}
+                maxLength={100}
                 required
               />
 
@@ -324,6 +325,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
                 value={editData.description}
                 onChange={e => setEditData({ ...editData, description: e.target.value })}
                 style={{ ...modalInputStyle(theme, darkMode), height: '120px', resize: 'none', fontFamily: 'inherit' }}
+                maxLength={2000}
                 required
               />
 
@@ -521,8 +523,8 @@ const AuthorBookDetails = ({ user, darkMode }) => {
             onError={(e) => { e.target.src = 'https://placehold.jp/180x270.png?text=Sin+Portada'; }}
           />
 
-          <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: '3.5rem', fontFamily: "'Crimson Pro', serif", fontWeight: 400, lineHeight: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ margin: 0, fontSize: '3.5rem', fontFamily: "'Crimson Pro', serif", fontWeight: 400, lineHeight: 1, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
               {book.title}
             </h1>
             <p style={{ color: theme.textMuted, fontSize: '1.1rem', maxWidth: '700px', margin: '20px 0', lineHeight: '1.6' }}>

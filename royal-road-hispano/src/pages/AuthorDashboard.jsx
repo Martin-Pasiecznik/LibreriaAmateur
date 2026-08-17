@@ -91,7 +91,7 @@ const AuthorDashboard = ({ user, darkMode }) => {
                 className="dashboard-card"
               >
                 {/* Info del libro */}
-                <div className="dash-card-info" style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
+                <div className="dash-card-info" style={{ display: 'flex', alignItems: 'center', gap: '25px', minWidth: 0, flex: 1 }}>
 
                   {/* Portada */}
                   <div style={{ width: '60px', height: '85px', backgroundColor: '#111', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 5px 15px rgba(0,0,0,0.2)', flexShrink: 0 }}>
@@ -103,9 +103,9 @@ const AuthorDashboard = ({ user, darkMode }) => {
                     />
                   </div>
 
-                  <div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                      <h3 style={{ margin: 0, fontFamily: "'Crimson Pro', serif", fontSize: '1.4rem', fontWeight: 600 }}>
+                      <h3 style={{ margin: 0, fontFamily: "'Crimson Pro', serif", fontSize: '1.4rem', fontWeight: 600, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {book.title}
                       </h3>
                       {/* Badge de estado */}
@@ -130,7 +130,7 @@ const AuthorDashboard = ({ user, darkMode }) => {
                 </div>
 
                 {/* Botones */}
-                <div className="dash-card-buttons" style={{ display: 'flex', gap: '12px' }}>
+                <div className="dash-card-buttons" style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
                   <button
                     onClick={() => navigate(`/dashboard/book/${book.id}`)}
                     style={{ border: `1px solid ${theme.border}`, background: 'transparent', color: theme.textMain, padding: '10px 20px', borderRadius: '50px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', transition: 'all 0.3s ease' }}
