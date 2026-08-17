@@ -527,7 +527,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
             <h1 style={{ margin: 0, fontSize: '3.5rem', fontFamily: "'Crimson Pro', serif", fontWeight: 400, lineHeight: 1, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
               {book.title}
             </h1>
-            <p style={{ color: theme.textMuted, fontSize: '1.1rem', maxWidth: '700px', margin: '20px 0', lineHeight: '1.6' }}>
+            <p style={{ color: theme.textMuted, fontSize: '1.1rem', maxWidth: '700px', margin: '20px 0', lineHeight: '1.6', overflowWrap: 'break-word', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
               {book.description}
             </p>
 

@@ -206,8 +206,8 @@ const BookDetail = ({ user, darkMode }) => {
           )}
         </div>
 
-        <div className="bd-info" style={{ flex: 1, minWidth: '320px' }}>
-          <h1 className="bd-title" style={{ fontSize: '3.5rem', margin: '0 0 10px 0', fontFamily: "'Crimson Pro', serif", fontWeight: 400, letterSpacing: '-1px' }}>{book.title}</h1>
+        <div className="bd-info" style={{ flex: 1, minWidth: '320px', maxWidth: '100%', overflow: 'hidden' }}>
+          <h1 className="bd-title" style={{ fontSize: '3.5rem', margin: '0 0 10px 0', fontFamily: "'Crimson Pro', serif", fontWeight: 400, letterSpacing: '-1px', overflowWrap: 'break-word', wordBreak: 'break-word' }}>{book.title}</h1>
           <p style={{ color: theme.accent, fontSize: '1.3rem', marginBottom: '20px', fontWeight: 500, fontStyle: 'italic', fontFamily: "'Crimson Pro', serif" }}>Autor: {book.author}</p>
 
           {/* +18 — distintivo de contenido adulto */}
@@ -294,7 +294,7 @@ const BookDetail = ({ user, darkMode }) => {
             </div>
             
           </div>
-          <p style={{ lineHeight: '1.8', fontSize: '1.1rem', color: theme.textMuted, marginBottom: '24px', maxWidth: '600px' }}>{book.description}</p>
+          <p style={{ lineHeight: '1.8', fontSize: '1.1rem', color: theme.textMuted, marginBottom: '24px', maxWidth: '600px', overflowWrap: 'break-word', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{book.description}</p>
 
 
           <label style={{ fontSize: '0.7rem', fontWeight: 800, display: 'block', marginBottom: '12px', opacity: 0.6, letterSpacing: '2px' }}>ETIQUETAS</label>
