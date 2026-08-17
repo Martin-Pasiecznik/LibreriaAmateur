@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { API_BASE, authHeader } from '../App';
 
+// Etiquetas legibles de categorías de reporte
+const REPORT_LABELS = {
+  ai_generated:  'Contenido IA',
+  plagiarism:    'Plagio',
+  inappropriate: 'Inapropiado',
+  spam:          'Spam',
+  illegal:       'Ilegal/dañino',
+  wrong_info:    'Info incorrecta',
+  other:         'Otro',
+};
+
 const AdminPanel = ({ user, darkMode }) => {
   const navigate = useNavigate();
   const [access, setAccess] = useState('checking'); // checking | allowed | denied
@@ -12,6 +23,7 @@ const AdminPanel = ({ user, darkMode }) => {
   const [books, setBooks] = useState([]);
   const [comments, setComments] = useState([]);
   const [users, setUsers] = useState([]);
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Buscador y filtro de estado (se reinician al cambiar de pestaña)
@@ -72,17 +84,32 @@ const AdminPanel = ({ user, darkMode }) => {
 
   const loadData = () => {
     setLoading(true);
-    const endpoint = tab === 'stats' ? 'stats' : tab === 'books' ? 'books' : tab === 'comments' ? 'comments' : 'users';
+    const endpoint = tab === 'stats' ? 'stats' : tab === 'books' ? 'books' : tab === 'comments' ? 'comments' : tab === 'users' ? 'users' : 'reports';
     fetch(`${API_BASE}/api/admin/${endpoint}`, { headers: authHeader(user) })
       .then(res => res.json())
       .then(data => {
         if (tab === 'stats') setStats(data);
         else if (tab === 'books') setBooks(Array.isArray(data) ? data : []);
         else if (tab === 'comments') setComments(Array.isArray(data) ? data : []);
-        else setUsers(Array.isArray(data) ? data : []);
+        else if (tab === 'users') setUsers(Array.isArray(data) ? data : []);
+        else setReports(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  const reviewReport = async (reportId, reviewed, bookId) => {
+    try {
+      await fetch(`${API_BASE}/api/admin/reports/${reportId}/review`, {
+        method: 'POST', headers: authHeader(user),
+        body: JSON.stringify({ reviewed }),
+      });
+      setReports(reports.map(bookGroup =>
+        bookGroup.book_id === bookId
+          ? { ...bookGroup, reports: bookGroup.reports.map(r => r.id === reportId ? { ...r, is_reviewed: reviewed ? 1 : 0 } : r) }
+          : bookGroup
+      ));
+    } catch (err) { console.error('Error al revisar reporte:', err); }
   };
 
   const toggleBan = async (email, currentlyBanned) => {
@@ -155,7 +182,7 @@ const AdminPanel = ({ user, darkMode }) => {
       </header>
 
       <div style={{ display: 'flex', gap: '12px', marginBottom: '30px', flexWrap: 'wrap' }}>
-        {[['stats', 'Resumen'], ['books', 'Libros'], ['comments', 'Comentarios'], ['users', 'Usuarios']].map(([key, label]) => (
+        {[['stats', 'Resumen'], ['books', 'Libros'], ['comments', 'Comentarios'], ['users', 'Usuarios'], ['reports', 'Reportes']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -172,8 +199,8 @@ const AdminPanel = ({ user, darkMode }) => {
         ))}
       </div>
 
-      {/* Buscador + filtros de estado (no se muestran en Resumen) */}
-      {tab !== 'stats' && (
+      {/* Buscador + filtros de estado (no se muestran en Resumen ni Reportes) */}
+      {tab !== 'stats' && tab !== 'reports' && (
         <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             type="text"
@@ -356,6 +383,59 @@ const AdminPanel = ({ user, darkMode }) => {
                   </button>
                 </div>
               )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── REPORTES ── */}
+      {!loading && tab === 'reports' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {reports.length === 0 && <p style={{ color: theme.textMuted, textAlign: 'center', padding: '40px' }}>No hay libros reportados.</p>}
+          {reports.map(group => (
+            <div key={group.book_id} style={{
+              padding: '18px 20px', borderRadius: '14px', background: theme.card,
+              border: `1px solid ${group.pending_reports > 0 ? '#e05252' : theme.border}`,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {group.title || 'Libro eliminado'}
+                    {group.is_hidden ? <span style={{ fontSize: '0.65rem', color: '#e05252', border: '1px solid #e05252', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>OCULTO</span> : null}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: theme.textMuted, marginTop: '3px' }}>
+                    por {group.author} · {group.total_reports} reporte{group.total_reports !== 1 ? 's' : ''} ({group.pending_reports} pendiente{group.pending_reports !== 1 ? 's' : ''})
+                  </div>
+                </div>
+                <button onClick={() => navigate(`/book/${group.book_id}`)} style={secondaryBtn(theme)}>Ver libro</button>
+              </div>
+
+              {/* Detalle de cada reporte */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {group.reports.map(r => (
+                  <div key={r.id} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px',
+                    padding: '12px 14px', borderRadius: '10px',
+                    background: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)',
+                    opacity: r.is_reviewed ? 0.55 : 1,
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: theme.accent }}>{REPORT_LABELS[r.category] || r.category}</span>
+                        {r.is_reviewed ? <span style={{ fontSize: '0.65rem', color: '#6b8e6b', fontWeight: 700 }}>✓ REVISADO</span> : null}
+                      </div>
+                      {r.comment ? <div style={{ fontSize: '0.85rem', color: theme.textMain, marginTop: '4px', wordBreak: 'break-word' }}>{r.comment}</div> : null}
+                      <div style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: '4px' }}>{r.user_email} · {new Date(r.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <button
+                      onClick={() => reviewReport(r.id, !r.is_reviewed, group.book_id)}
+                      style={r.is_reviewed ? secondaryBtn(theme) : restoreBtn()}
+                    >
+                      {r.is_reviewed ? 'Reabrir' : 'Marcar revisado'}
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>

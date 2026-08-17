@@ -208,6 +208,17 @@ def init_db_internal():
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         expires_at DATETIME NOT NULL)''')
 
+    cursor.execute('''CREATE TABLE IF NOT EXISTS reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id INTEGER NOT NULL,
+        user_email TEXT NOT NULL,
+        category TEXT NOT NULL,
+        comment TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_reviewed INTEGER DEFAULT 0,
+        UNIQUE(book_id, user_email),
+        FOREIGN KEY (book_id) REFERENCES books (id))''')
+
     # Índices para rendimiento
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_sessions_email ON sessions(user_email)')
@@ -641,6 +652,55 @@ def admin_stats():
         "top_viewed": [dict(r) for r in top_viewed],
         "by_month": [dict(r) for r in reversed(by_month)],  # orden cronológico
     }), 200
+
+
+# ── ADMIN: REPORTES ───────────────────────────────────────────────────────
+
+@app.route('/api/admin/reports', methods=['GET'])
+@require_admin
+def admin_list_reports():
+    """
+    Lista los reportes agrupados por libro: cuántos tiene cada uno,
+    de qué categorías, y si están revisados. Ordena por más reportados.
+    """
+    conn = get_db_connection()
+    # Resumen por libro (solo con reportes sin revisar contados aparte)
+    rows = conn.execute('''
+        SELECT r.book_id, b.title, b.author, b.is_hidden,
+               COUNT(*) as total_reports,
+               SUM(CASE WHEN r.is_reviewed = 0 THEN 1 ELSE 0 END) as pending_reports
+        FROM reports r
+        LEFT JOIN books b ON r.book_id = b.id
+        GROUP BY r.book_id
+        ORDER BY pending_reports DESC, total_reports DESC
+    ''').fetchall()
+
+    result = []
+    for row in rows:
+        d = dict(row)
+        # Detalle de reportes de este libro
+        details = conn.execute('''
+            SELECT id, category, comment, user_email, created_at, is_reviewed
+            FROM reports WHERE book_id = ?
+            ORDER BY created_at DESC
+        ''', (row['book_id'],)).fetchall()
+        d['reports'] = [dict(x) for x in details]
+        result.append(d)
+    conn.close()
+    return jsonify(result), 200
+
+
+@app.route('/api/admin/reports/<int:report_id>/review', methods=['POST'])
+@require_admin
+def admin_review_report(report_id):
+    """Marca un reporte como revisado (o lo vuelve a pendiente)."""
+    data = request.get_json() or {}
+    reviewed = 1 if data.get('reviewed') else 0
+    conn = get_db_connection()
+    conn.execute('UPDATE reports SET is_reviewed = ? WHERE id = ?', (reviewed, report_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "ok", "is_reviewed": reviewed}), 200
 
 
 # =============================================================================
@@ -1119,6 +1179,78 @@ def handle_single_chapter(chapter_id):
 # =============================================================================
 # COMENTARIOS Y RATINGS
 # =============================================================================
+
+# Categorías de reporte válidas (el backend valida contra esta lista)
+VALID_REPORT_CATEGORIES = {
+    'ai_generated', 'plagiarism', 'inappropriate', 'spam',
+    'illegal', 'wrong_info', 'other'
+}
+
+@app.route('/api/books/<int:book_id>/report', methods=['POST'])
+@require_auth
+@limiter.limit("10 per minute")
+def report_book(book_id):
+    """Un usuario logueado reporta un libro. Uno por usuario por libro."""
+    data = request.get_json() or {}
+    category = (data.get('category') or '').strip()
+    comment = (data.get('comment') or '').strip()
+
+    if category not in VALID_REPORT_CATEGORIES:
+        return jsonify({"error": "Categoría de reporte inválida."}), 400
+
+    err = check_length(comment, 300, 'comentario del reporte')
+    if err:
+        return jsonify({"error": err}), 400
+
+    conn = get_db_connection()
+    # Verificar que el libro existe
+    book = conn.execute('SELECT id FROM books WHERE id = ?', (book_id,)).fetchone()
+    if not book:
+        conn.close()
+        return jsonify({"error": "Libro no encontrado."}), 404
+
+    try:
+        conn.execute('''
+            INSERT INTO reports (book_id, user_email, category, comment)
+            VALUES (?, ?, ?, ?)
+        ''', (book_id, g.current_user_email, category, comment))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        # UNIQUE(book_id, user_email) → ya reportó este libro
+        conn.close()
+        return jsonify({"error": "Ya reportaste este libro."}), 409
+    conn.close()
+    return jsonify({"status": "ok"}), 201
+
+
+@app.route('/api/books/<int:book_id>/report', methods=['DELETE'])
+@require_auth
+def delete_my_report(book_id):
+    """Un usuario retira su propio reporte de un libro (arrepentimiento)."""
+    conn = get_db_connection()
+    conn.execute(
+        'DELETE FROM reports WHERE book_id = ? AND user_email = ?',
+        (book_id, g.current_user_email)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "ok"}), 200
+
+
+@app.route('/api/books/<int:book_id>/report/mine', methods=['GET'])
+@require_auth
+def get_my_report(book_id):
+    """Devuelve si el usuario actual ya reportó este libro (para el frontend)."""
+    conn = get_db_connection()
+    row = conn.execute(
+        'SELECT category, comment FROM reports WHERE book_id = ? AND user_email = ?',
+        (book_id, g.current_user_email)
+    ).fetchone()
+    conn.close()
+    if row:
+        return jsonify({"reported": True, "category": row['category'], "comment": row['comment']}), 200
+    return jsonify({"reported": False}), 200
+
 
 @app.route('/api/books/<int:book_id>/comments', methods=['GET', 'POST'])
 @limiter.limit("20 per minute")  # #4 — evita spam de comentarios

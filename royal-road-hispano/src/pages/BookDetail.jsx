@@ -3,6 +3,17 @@ import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { API_BASE, authHeader } from '../App';
 
+// Categorías de reporte (deben coincidir con las del backend)
+const REPORT_LABELS = {
+  ai_generated:  'Contenido generado por IA',
+  plagiarism:    'Plagio / contenido robado',
+  inappropriate: 'Contenido inapropiado (sin marcar +18)',
+  spam:          'Spam o publicidad',
+  illegal:       'Contenido ilegal o dañino',
+  wrong_info:    'Información incorrecta en la ficha',
+  other:         'Otro',
+};
+
 // ─── HELPER: tiempo relativo ─────────────────────────────────────────────────
 const timeAgo = (dateStr) => {
   if (!dateStr) return null;
@@ -61,6 +72,13 @@ const BookDetail = ({ user, darkMode }) => {
   const [notif, setNotif]                 = useState("");
   const [progress, setProgress]           = useState({ lastChapterIndex: -1, readChapters: [] });
   const [isStatusOpen, setIsStatusOpen]   = useState(false);
+
+  // Sistema de reportes
+  const [reportOpen, setReportOpen]       = useState(false);
+  const [myReport, setMyReport]           = useState(null); // null = no reportó
+  const [reportCategory, setReportCategory] = useState('');
+  const [reportComment, setReportComment] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const theme = {
     accent:    darkMode ? '#d4af37' : '#b85b3f',
@@ -136,6 +154,40 @@ const BookDetail = ({ user, darkMode }) => {
     fetch(`${API_BASE}/api/books/${id}/comments?chapter_id=null`)
       .then(r => r.json())
       .then(d => setComments(Array.isArray(d) ? d : []));
+  };
+
+  // Consultar si el usuario ya reportó este libro
+  useEffect(() => {
+    if (!user?.session_token) { setMyReport(null); return; }
+    fetch(`${API_BASE}/api/books/${id}/report/mine`, { headers: authHeader(user) })
+      .then(r => r.json())
+      .then(d => setMyReport(d.reported ? { category: d.category, comment: d.comment } : null))
+      .catch(() => {});
+  }, [id, user]);
+
+  const submitReport = () => {
+    if (!user?.session_token) { setNotif("Debes iniciar sesión para reportar."); setReportOpen(false); return; }
+    if (!reportCategory) return;
+    setReportSubmitting(true);
+    fetch(`${API_BASE}/api/books/${id}/report`, {
+      method: 'POST', headers: authHeader(user),
+      body: JSON.stringify({ category: reportCategory, comment: reportComment }),
+    })
+      .then(async r => {
+        if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Error'); }
+        setMyReport({ category: reportCategory, comment: reportComment });
+        setReportOpen(false);
+        setReportCategory(''); setReportComment('');
+        setNotif("Reporte enviado. Gracias por avisar.");
+      })
+      .catch(err => setNotif(err.message))
+      .finally(() => setReportSubmitting(false));
+  };
+
+  const withdrawReport = () => {
+    fetch(`${API_BASE}/api/books/${id}/report`, { method: 'DELETE', headers: authHeader(user) })
+      .then(() => { setMyReport(null); setReportOpen(false); setNotif("Reporte retirado."); })
+      .catch(() => {});
   };
 
   const handleRate = (score) => {
@@ -313,8 +365,91 @@ const BookDetail = ({ user, darkMode }) => {
             </div>
           )}
 
+          {/* Botón de reportar */}
+          <div style={{ marginTop: '10px' }}>
+            <button
+              onClick={() => setReportOpen(true)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: myReport ? '#e05252' : theme.textMuted, fontSize: '0.8rem',
+                fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: 0, opacity: 0.8,
+              }}
+            >
+              ⚑ {myReport ? 'Ya reportaste este libro' : 'Reportar este libro'}
+            </button>
+          </div>
+
         </div>
       </div>
+
+      {/* ── MODAL DE REPORTE ── */}
+      {reportOpen && (
+        <div
+          onClick={() => setReportOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: darkMode ? '#14151c' : '#fff', borderRadius: '20px', padding: '30px', maxWidth: '440px', width: '100%', border: `1px solid ${theme.border}`, maxHeight: '85vh', overflowY: 'auto' }}
+          >
+            <h3 style={{ fontFamily: "'Crimson Pro', serif", fontSize: '1.6rem', margin: '0 0 6px 0', color: theme.textMain }}>
+              {myReport ? 'Tu reporte' : 'Reportar libro'}
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: theme.textMuted, marginBottom: '20px' }}>
+              {myReport ? 'Ya reportaste este libro. Podés retirar tu reporte.' : 'Contanos qué problema encontraste con este libro.'}
+            </p>
+
+            {myReport ? (
+              <div>
+                <div style={{ padding: '14px', borderRadius: '12px', background: `${theme.accent}10`, border: `1px solid ${theme.border}`, marginBottom: '20px' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain }}>{REPORT_LABELS[myReport.category] || myReport.category}</div>
+                  {myReport.comment ? <div style={{ fontSize: '0.8rem', color: theme.textMuted, marginTop: '6px' }}>{myReport.comment}</div> : null}
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={withdrawReport} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #e05252', background: 'transparent', color: '#e05252', cursor: 'pointer', fontWeight: 700 }}>
+                    Retirar reporte
+                  </button>
+                  <button onClick={() => setReportOpen(false)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: `1px solid ${theme.border}`, background: 'transparent', color: theme.textMuted, cursor: 'pointer', fontWeight: 600 }}>
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
+                  {Object.entries(REPORT_LABELS).map(([key, label]) => (
+                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', cursor: 'pointer', border: `1px solid ${reportCategory === key ? theme.accent : theme.border}`, background: reportCategory === key ? `${theme.accent}12` : 'transparent' }}>
+                      <input type="radio" name="reportcat" checked={reportCategory === key} onChange={() => setReportCategory(key)} style={{ accentColor: theme.accent }} />
+                      <span style={{ fontSize: '0.88rem', color: theme.textMain }}>{label}</span>
+                    </label>
+                  ))}
+                </div>
+                <textarea
+                  value={reportComment}
+                  onChange={e => setReportComment(e.target.value)}
+                  placeholder="Detalles adicionales (opcional)..."
+                  maxLength={300}
+                  style={{ width: '100%', height: '80px', padding: '12px', borderRadius: '10px', border: `1px solid ${theme.border}`, background: darkMode ? 'rgba(0,0,0,0.2)' : '#faf8f5', color: theme.textMain, fontSize: '0.9rem', resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit', marginBottom: '4px' }}
+                />
+                <div style={{ fontSize: '0.7rem', color: theme.textMuted, textAlign: 'right', marginBottom: '18px' }}>{reportComment.length} / 300</div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={submitReport}
+                    disabled={!reportCategory || reportSubmitting}
+                    style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', background: theme.accent, color: darkMode ? '#0a0b10' : '#fff', cursor: reportCategory ? 'pointer' : 'not-allowed', fontWeight: 700, opacity: reportCategory && !reportSubmitting ? 1 : 0.5 }}
+                  >
+                    {reportSubmitting ? 'Enviando...' : 'Enviar reporte'}
+                  </button>
+                  <button onClick={() => setReportOpen(false)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: `1px solid ${theme.border}`, background: 'transparent', color: theme.textMuted, cursor: 'pointer', fontWeight: 600 }}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── ÍNDICE ── */}
       <div style={{ marginBottom: '80px' }}>

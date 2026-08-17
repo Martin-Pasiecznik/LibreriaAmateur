@@ -687,7 +687,7 @@ function App() {
                                 titleSize="0.85rem"
                               />
                             </div>
-                            <h3 style={{ margin: "15px 0 0 0", fontSize: "0.9rem", fontWeight: 700, textAlign: "center" }}>
+                            <h3 style={{ margin: "15px 0 0 0", fontSize: "0.9rem", fontWeight: 700, textAlign: "center", overflowWrap: "break-word", wordBreak: "break-word" }}>
                               {book.title}
                             </h3>
                           </div>

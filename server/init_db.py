@@ -150,6 +150,23 @@ def init_db():
         expires_at DATETIME NOT NULL
     )''')
 
+    # ── 10. REPORTES ───────────────────────────────────────────────────────────
+    # Reportes de libros hechos por usuarios. category = tipo de reporte.
+    # is_reviewed = 1 cuando el admin ya lo revisó.
+    # UNIQUE(book_id, user_email) → un reporte por usuario por libro.
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS reports (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        book_id     INTEGER NOT NULL,
+        user_email  TEXT NOT NULL,
+        category    TEXT NOT NULL,
+        comment     TEXT,
+        created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+        is_reviewed INTEGER DEFAULT 0,
+        UNIQUE(book_id, user_email),
+        FOREIGN KEY (book_id) REFERENCES books (id)
+    )''')
+
     # ══ ÍNDICES ════════════════════════════════════════════════════════════════
     # Aceleran las consultas más frecuentes de la app.
     # Sin índices, SQLite hace full-table scan en cada request.
