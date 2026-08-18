@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_BASE, authHeader } from '../App';
+import CoverImage from '../components/CoverImage';
 
 // Mismo objeto que BookDetail — fuente única de verdad de los estados
 const BOOK_STATUS_DISPLAY = {
@@ -94,12 +95,13 @@ const AuthorDashboard = ({ user, darkMode }) => {
                 <div className="dash-card-info" style={{ display: 'flex', alignItems: 'center', gap: '25px', minWidth: 0, flex: 1 }}>
 
                   {/* Portada */}
-                  <div style={{ width: '60px', height: '85px', backgroundColor: '#111', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 5px 15px rgba(0,0,0,0.2)', flexShrink: 0 }}>
-                    <img
-                      src={`${API_BASE}/static/covers/${book.author_note}`}
-                      alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => e.target.src = 'https://placehold.jp/60x85.png?text=No+Cover'}
+                  <div style={{ width: '60px', height: '85px', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 5px 15px rgba(0,0,0,0.2)', flexShrink: 0 }}>
+                    <CoverImage
+                      authorNote={book.author_note}
+                      title={book.title}
+                      theme={theme}
+                      darkMode={darkMode}
+                      titleSize="0.5rem"
                     />
                   </div>
 

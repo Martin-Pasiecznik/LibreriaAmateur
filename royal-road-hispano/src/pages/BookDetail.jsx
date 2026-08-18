@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { API_BASE, authHeader } from '../App';
+import CoverImage from '../components/CoverImage';
 
 // Categorías de reporte (deben coincidir con las del backend)
 const REPORT_LABELS = {
@@ -251,11 +252,15 @@ const BookDetail = ({ user, darkMode }) => {
       <div className="bd-header" style={{ display: 'flex', gap: '60px', marginBottom: '80px', flexWrap: 'wrap' }}>
 
         <div className="bd-cover-wrap" style={{ flexShrink: 0 }}>
-          {book.author_note && book.author_note !== 'null' ? (
-            <img className="bd-cover" src={`${API_BASE}/static/covers/${book.author_note}`} style={{ width: '300px', borderRadius: '12px', boxShadow: '0 30px 60px rgba(0,0,0,0.5)', border: `1px solid ${theme.border}`, objectFit: 'cover' }} alt="Portada" />
-          ) : (
-            <div style={defaultCoverStyle}>SIN PORTADA</div>
-          )}
+          <div className="bd-cover" style={{ width: '300px', aspectRatio: '2/3', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 30px 60px rgba(0,0,0,0.5)', border: `1px solid ${theme.border}` }}>
+            <CoverImage
+              authorNote={book.author_note}
+              title={book.title}
+              theme={theme}
+              darkMode={darkMode}
+              titleSize="1.4rem"
+            />
+          </div>
         </div>
 
         <div className="bd-info" style={{ flex: 1, minWidth: '320px', maxWidth: '100%', overflow: 'hidden' }}>

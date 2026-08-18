@@ -5,6 +5,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell
 } from 'recharts';
 import { API_BASE, authHeader } from '../App';
+import CoverImage from '../components/CoverImage';
 
 // ─── Estados posibles de una obra ────────────────────────────────────────────
 const BOOK_STATUSES = {
@@ -516,12 +517,15 @@ const AuthorBookDetails = ({ user, darkMode }) => {
 
         {/* HEADER */}
         <div className="abd-header" style={{ display: 'flex', gap: '40px', marginBottom: '60px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <img
-            src={`${API_BASE}/static/covers/${book.author_note}`}
-            style={{ width: '180px', height: '270px', objectFit: 'cover', borderRadius: '12px', boxShadow: `0 20px 40px rgba(0,0,0,${darkMode ? '0.5' : '0.2'})`, border: `1px solid ${theme.border}` }}
-            alt="Portada"
-            onError={(e) => { e.target.src = 'https://placehold.jp/180x270.png?text=Sin+Portada'; }}
-          />
+          <div style={{ width: '180px', height: '270px', flexShrink: 0, borderRadius: '12px', overflow: 'hidden', boxShadow: `0 20px 40px rgba(0,0,0,${darkMode ? '0.5' : '0.2'})`, border: `1px solid ${theme.border}` }}>
+            <CoverImage
+              authorNote={book.author_note}
+              title={book.title}
+              theme={theme}
+              darkMode={darkMode}
+              titleSize="1rem"
+            />
+          </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1 style={{ margin: 0, fontSize: '3.5rem', fontFamily: "'Crimson Pro', serif", fontWeight: 400, lineHeight: 1, overflowWrap: 'break-word', wordBreak: 'break-word' }}>

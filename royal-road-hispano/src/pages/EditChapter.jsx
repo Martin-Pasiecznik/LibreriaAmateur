@@ -124,6 +124,23 @@ const EditChapter = ({ darkMode, user }) => {
       </div>
 
       <style>{`
+        /* Barra de scroll del editor: cursor de flecha (no de texto) y aspecto prolijo */
+        .editch-textarea::-webkit-scrollbar {
+          width: 12px;
+          cursor: default;
+        }
+        .editch-textarea::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .editch-textarea::-webkit-scrollbar-thumb {
+          background: ${darkMode ? 'rgba(212,175,55,0.3)' : 'rgba(184,91,63,0.3)'};
+          border-radius: 6px;
+          cursor: default;
+        }
+        .editch-textarea::-webkit-scrollbar-thumb:hover {
+          background: ${darkMode ? 'rgba(212,175,55,0.5)' : 'rgba(184,91,63,0.5)'};
+        }
+
         /* Responsividad — solo disposición, sin tocar fuentes ni colores */
         @media (max-width: 600px) {
           .editch-container {
