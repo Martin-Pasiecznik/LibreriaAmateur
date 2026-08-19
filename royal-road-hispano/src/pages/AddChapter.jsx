@@ -8,6 +8,8 @@ const AddChapter = ({ user, darkMode }) => {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [authorNote, setAuthorNote] = useState('');
+  const [notePosition, setNotePosition] = useState('top');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingChapters, setExistingChapters] = useState([]);
 
@@ -62,6 +64,8 @@ const AddChapter = ({ user, darkMode }) => {
           title: title.trim(),
           content: content,
           word_count: wordCount,
+          author_note: authorNote.trim(),
+          note_position: notePosition,
           // author_email eliminado: el backend lo toma del token
         }),
       });
@@ -132,6 +136,40 @@ const AddChapter = ({ user, darkMode }) => {
               onChange={(e) => setContent(e.target.value)}
               required
             />
+
+            {/* Nota del autor (opcional) */}
+            <div style={{ marginTop: '10px', marginBottom: '10px' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '1px', color: theme.accent, opacity: 0.8, marginBottom: '10px' }}>
+                NOTA DEL AUTOR (OPCIONAL)
+              </label>
+              <textarea
+                style={{ width: '100%', padding: '15px', borderRadius: '12px', border: `1px solid ${theme.border}`, backgroundColor: theme.inputBg, color: theme.textMain, fontSize: '1rem', fontFamily: "'Inter', sans-serif", lineHeight: '1.6', outline: 'none', boxSizing: 'border-box', height: '100px', resize: 'vertical' }}
+                placeholder="Un comentario para tus lectores (se muestra solo si escribís algo)..."
+                value={authorNote}
+                onChange={(e) => setAuthorNote(e.target.value)}
+                maxLength={2000}
+              />
+              {authorNote.trim() && (
+                <div style={{ display: 'flex', gap: '10px', marginTop: '12px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', color: theme.textMuted }}>Mostrar la nota:</span>
+                  {[['top', 'Arriba del capítulo'], ['bottom', 'Abajo del capítulo']].map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setNotePosition(key)}
+                      style={{
+                        padding: '6px 14px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
+                        border: `1px solid ${notePosition === key ? theme.accent : theme.border}`,
+                        background: notePosition === key ? theme.accent : 'transparent',
+                        color: notePosition === key ? (darkMode ? '#0a0b10' : '#fff') : theme.textMuted,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px' }}>
               <button type="submit" disabled={isSubmitting} style={{ padding: '16px 45px', backgroundColor: theme.accent, color: darkMode ? '#000' : '#fff', border: 'none', borderRadius: '50px', cursor: isSubmitting ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '1rem', transition: 'all 0.3s ease', opacity: isSubmitting ? 0.6 : 1 }}>
                 {isSubmitting ? 'Publicando...' : 'Publicar Capítulo'}

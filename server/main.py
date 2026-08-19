@@ -137,7 +137,8 @@ def init_db_internal():
         book_status TEXT DEFAULT 'ongoing',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         is_adult INTEGER DEFAULT 0,
-        is_hidden INTEGER DEFAULT 0)''')
+        is_hidden INTEGER DEFAULT 0,
+        book_note TEXT)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS chapters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -148,6 +149,8 @@ def init_db_internal():
         order_index INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME,
+        author_note TEXT,
+        note_position TEXT DEFAULT 'top',
         FOREIGN KEY (book_id) REFERENCES books (id))''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS ratings (
@@ -838,10 +841,16 @@ def handle_books():
         # #+18 — leer el flag de contenido adulto del form (checkbox)
         is_adult = 1 if request.form.get('is_adult') in ('1', 'true', 'True', 'on') else 0
 
+        # Nota del autor a nivel libro (opcional)
+        book_note = (request.form.get('book_note') or '').strip()
+        err = check_length(book_note, MAX_DESC_CHARS, 'nota del autor')
+        if err:
+            return jsonify({"error": err}), 400
+
         conn = get_db_connection()
         conn.execute('''
-            INSERT INTO books (title, author, author_email, description, author_note, tags, created_at, is_adult)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)
+            INSERT INTO books (title, author, author_email, description, author_note, tags, created_at, is_adult, book_note)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)
         ''', (
             title,
             request.form.get('author'),
@@ -849,7 +858,8 @@ def handle_books():
             description,
             filename,
             tags,
-            is_adult
+            is_adult,
+            book_note
         ))
         conn.commit()
         conn.close()
@@ -996,6 +1006,9 @@ def update_book_details(book_id):
     # #+18 — flag de contenido adulto (checkbox del form)
     is_adult = 1 if request.form.get('is_adult') in ('1', 'true', 'True', 'on') else 0
 
+    # Nota del autor a nivel libro (opcional)
+    book_note = (request.form.get('book_note') or '').strip()
+
     conn = get_db_connection()
     if file and file.filename != '':
         try:
@@ -1009,19 +1022,19 @@ def update_book_details(book_id):
                 "JPEG", quality=82, optimize=True
             )
             conn.execute(
-                'UPDATE books SET title = ?, description = ?, tags = ?, author_note = ?, is_adult = ? WHERE id = ?',
-                (title, description, tags, filename, is_adult, book_id)
+                'UPDATE books SET title = ?, description = ?, tags = ?, author_note = ?, is_adult = ?, book_note = ? WHERE id = ?',
+                (title, description, tags, filename, is_adult, book_note, book_id)
             )
         except Exception as e:
             print(f"[Cover] Error procesando imagen: {e}")
             conn.execute(
-                'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ? WHERE id = ?',
-                (title, description, tags, is_adult, book_id)
+                'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ? WHERE id = ?',
+                (title, description, tags, is_adult, book_note, book_id)
             )
     else:
         conn.execute(
-            'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ? WHERE id = ?',
-            (title, description, tags, is_adult, book_id)
+            'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ? WHERE id = ?',
+            (title, description, tags, is_adult, book_note, book_id)
         )
 
     conn.commit()
@@ -1110,10 +1123,17 @@ def add_chapter():
     if err:
         return jsonify({"error": err}), 400
 
+    # Nota del autor del capítulo (opcional) + posición
+    author_note = (data.get('author_note') or '').strip()
+    note_position = data.get('note_position') if data.get('note_position') in ('top', 'bottom') else 'top'
+    err = check_length(author_note, 2000, 'nota del autor')
+    if err:
+        return jsonify({"error": err}), 400
+
     conn = get_db_connection()
     conn.execute(
-        'INSERT INTO chapters (book_id, title, content, word_count, created_at) VALUES (?, ?, ?, ?, datetime("now"))',
-        (book_id, title, content, len(content.split()))
+        'INSERT INTO chapters (book_id, title, content, word_count, created_at, author_note, note_position) VALUES (?, ?, ?, ?, datetime("now"), ?, ?)',
+        (book_id, title, content, len(content.split()), author_note, note_position)
     )
     conn.commit()
     conn.close()
@@ -1158,9 +1178,18 @@ def handle_single_chapter(chapter_id):
             conn.close()
             return jsonify({"error": err}), 400
         word_count = len(content.split()) if content else 0
+
+        # Nota del autor (opcional) + posición
+        author_note = (data.get('author_note') or '').strip()
+        note_position = data.get('note_position') if data.get('note_position') in ('top', 'bottom') else 'top'
+        err = check_length(author_note, 2000, 'nota del autor')
+        if err:
+            conn.close()
+            return jsonify({"error": err}), 400
+
         conn.execute(
-            "UPDATE chapters SET title = ?, content = ?, word_count = ?, updated_at = datetime('now') WHERE id = ?",
-            (title, content, word_count, chapter_id)
+            "UPDATE chapters SET title = ?, content = ?, word_count = ?, updated_at = datetime('now'), author_note = ?, note_position = ? WHERE id = ?",
+            (title, content, word_count, author_note, note_position, chapter_id)
         )
         conn.commit()
         conn.close()

@@ -6,6 +6,7 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
   const [title, setTitle] = useState('');
   const [authorName, setAuthorName] = useState(user?.name || '');
   const [description, setDescription] = useState('');
+  const [bookNote, setBookNote] = useState('');
   const [tags, setTags] = useState('');
   const [isAdult, setIsAdult] = useState(false);
   const [cover, setCover] = useState(null);
@@ -75,6 +76,7 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
     formData.append('title', title);
     formData.append('author', authorName.trim() || user.name);
     formData.append('description', description);
+    formData.append('book_note', bookNote.trim());
     formData.append('is_adult', isAdult ? '1' : '0');
     // author_email ya no se usa: el backend lo toma del token
     formData.append('tags', tags);
@@ -162,6 +164,15 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
           <div style={{ fontSize: '0.7rem', color: theme.textMuted, textAlign: 'right', marginBottom: '25px' }}>
             {description.length} / 2000
           </div>
+
+          <label style={labelStyle(theme)}>NOTA DEL AUTOR (OPCIONAL)</label>
+          <textarea
+            placeholder="Un mensaje para tus lectores. Aparece bajo la sinopsis, solo si escribís algo."
+            value={bookNote}
+            onChange={e => setBookNote(e.target.value)}
+            style={{ ...inputStyle(theme), height: '90px', resize: 'none' }}
+            maxLength={2000}
+          />
 
           <label style={labelStyle(theme)}>GÉNEROS Y ETIQUETAS</label>
           <input

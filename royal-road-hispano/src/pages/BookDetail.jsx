@@ -353,6 +353,14 @@ const BookDetail = ({ user, darkMode }) => {
           </div>
           <p style={{ lineHeight: '1.8', fontSize: '1.1rem', color: theme.textMuted, marginBottom: '24px', maxWidth: '600px', overflowWrap: 'break-word', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{book.description}</p>
 
+          {/* Nota del autor (solo si tiene contenido) */}
+          {book.book_note && book.book_note.trim() && (
+            <div style={{ maxWidth: '600px', marginBottom: '24px', padding: '18px 22px', background: theme.card, border: `1px solid ${theme.border}`, borderLeft: `3px solid ${theme.accent}`, borderRadius: '12px' }}>
+              <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', color: theme.accent, marginBottom: '8px' }}>NOTA DEL AUTOR</div>
+              <div style={{ fontSize: '1rem', color: theme.textMuted, lineHeight: '1.6', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{book.book_note}</div>
+            </div>
+          )}
+
 
           <label style={{ fontSize: '0.7rem', fontWeight: 800, display: 'block', marginBottom: '12px', opacity: 0.6, letterSpacing: '2px' }}>ETIQUETAS</label>
           {book.tags && (

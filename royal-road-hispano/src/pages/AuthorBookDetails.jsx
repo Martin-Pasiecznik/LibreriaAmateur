@@ -85,7 +85,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
       setBook(bookData);
       setChapters(Array.isArray(chaptersData) ? chaptersData : []);
       setStats(statsData);
-      setEditData({ title: bookData.title, description: bookData.description, tags: bookData.tags || '', is_adult: bookData.is_adult || 0 });
+      setEditData({ title: bookData.title, description: bookData.description, tags: bookData.tags || '', is_adult: bookData.is_adult || 0, book_note: bookData.book_note || '' });
       setBookStatus(bookData.book_status || 'ongoing'); // default: en progreso
     } catch (err) {
       console.error('Error cargando datos:', err);
@@ -102,6 +102,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
     const formData = new FormData();
     formData.append('title',       editData.title);
     formData.append('description', editData.description);
+    formData.append('book_note',   editData.book_note || '');
     formData.append('tags',        editData.tags);
     formData.append('is_adult',    editData.is_adult ? '1' : '0');
     if (newCover) formData.append('cover', newCover);
@@ -328,6 +329,15 @@ const AuthorBookDetails = ({ user, darkMode }) => {
                 style={{ ...modalInputStyle(theme, darkMode), height: '120px', resize: 'none', fontFamily: 'inherit' }}
                 maxLength={2000}
                 required
+              />
+
+              <label style={modalLabelStyle(theme)}>NOTA DEL AUTOR (OPCIONAL)</label>
+              <textarea
+                placeholder="Un mensaje para tus lectores (se muestra bajo la sinopsis, solo si escribís algo)..."
+                value={editData.book_note || ''}
+                onChange={e => setEditData({ ...editData, book_note: e.target.value })}
+                style={{ ...modalInputStyle(theme, darkMode), height: '90px', resize: 'none', fontFamily: 'inherit' }}
+                maxLength={2000}
               />
 
               <label style={modalLabelStyle(theme)}>GÉNEROS Y ETIQUETAS</label>

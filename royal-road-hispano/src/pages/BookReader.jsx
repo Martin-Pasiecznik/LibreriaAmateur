@@ -145,8 +145,7 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
   const currentChapter = chapters[currentIndex];
   if (!currentChapter) return <div style={{ textAlign: 'center', padding: '50px', color: theme.textMain }}>Capítulo no encontrado.</div>;
 
-  const paragraphs = currentChapter.content.split(/\n+/);
-  const midPointPara = Math.floor(paragraphs.length / 2);
+  const paragraphs = currentChapter.content.split(/\n+/);  const midPointPara = Math.floor(paragraphs.length / 2);
 
   const readerTextStyle = { fontSize: `${fontSize}px`, fontFamily: "'Crimson Pro', serif", lineHeight: '1.85', maxWidth: '800px', margin: '0 auto', textAlign: 'justify', color: theme.textMain, padding: '0 30px', opacity: 0.95 };
   const paragraphStyle = { marginBottom: '1.6rem', display: 'block' };
@@ -188,11 +187,27 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
           <div style={{ width: '40px', height: '2px', background: theme.accent, margin: '20px auto' }}></div>
         </div>
 
+        {/* Nota del autor ARRIBA (si corresponde) */}
+        {currentChapter.author_note && currentChapter.note_position !== 'bottom' && (
+          <div className="reader-authornote" style={authorNoteStyle(theme)}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', color: theme.accent, marginBottom: '8px' }}>NOTA DEL AUTOR</div>
+            <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{currentChapter.author_note}</div>
+          </div>
+        )}
+
         <div className="reader-article" style={readerTextStyle}>
           {paragraphs.slice(0, midPointPara).map((para, i) => <p key={`p1-${i}`} style={paragraphStyle}>{para}</p>)}
           <div ref={triggerRef} style={{ height: '40px', margin: '20px 0', opacity: 0.1, textAlign: 'center' }}>✦</div>
           {paragraphs.slice(midPointPara).map((para, i) => <p key={`p2-${i}`} style={paragraphStyle}>{para}</p>)}
         </div>
+
+        {/* Nota del autor ABAJO (si corresponde) */}
+        {currentChapter.author_note && currentChapter.note_position === 'bottom' && (
+          <div className="reader-authornote" style={authorNoteStyle(theme)}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '1px', color: theme.accent, marginBottom: '8px' }}>NOTA DEL AUTOR</div>
+            <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{currentChapter.author_note}</div>
+          </div>
+        )}
       </main>
 
       <nav className="reader-nav" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', padding: '60px 0', maxWidth: '800px', margin: '0 auto', borderTop: `1px solid ${theme.border}`, borderBottom: `1px solid ${theme.border}` }}>
@@ -320,5 +335,6 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
 
 const btnSmall = (darkMode, theme) => ({ padding: '8px 15px', cursor: 'pointer', borderRadius: '8px', border: `1px solid ${theme.border}`, backgroundColor: theme.card, color: theme.textMain, fontSize: '0.8rem', transition: '0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center' });
 const navBtnStyle = (theme) => ({ padding: '14px 40px', backgroundColor: 'transparent', color: theme.textMain, border: `1px solid ${theme.accent}`, borderRadius: '50px', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '2px', transition: '0.3s' });
+const authorNoteStyle = (theme) => ({ maxWidth: '700px', margin: '0 auto 40px auto', padding: '20px 24px', background: theme.card, border: `1px solid ${theme.border}`, borderLeft: `3px solid ${theme.accent}`, borderRadius: '12px', color: theme.textMuted, fontSize: '0.95rem', lineHeight: '1.6', fontFamily: "'Inter', sans-serif" });
 
 export default BookReader;

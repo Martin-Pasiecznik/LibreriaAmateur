@@ -40,7 +40,8 @@ def init_db():
         book_status  TEXT    DEFAULT 'ongoing',
         created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
         is_adult     INTEGER DEFAULT 0,
-        is_hidden    INTEGER DEFAULT 0
+        is_hidden    INTEGER DEFAULT 0,
+        book_note    TEXT
     )''')
 
     # ── 3. CAPÍTULOS ───────────────────────────────────────────────────────────
@@ -55,6 +56,8 @@ def init_db():
         order_index INTEGER,
         created_at DATETIME,
         updated_at DATETIME,
+        author_note TEXT,
+        note_position TEXT DEFAULT 'top',
         FOREIGN KEY (book_id) REFERENCES books (id))''')
 
     # ── 4. CALIFICACIONES ──────────────────────────────────────────────────────

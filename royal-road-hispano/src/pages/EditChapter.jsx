@@ -9,6 +9,8 @@ const EditChapter = ({ darkMode, user }) => {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [authorNote, setAuthorNote] = useState('');
+  const [notePosition, setNotePosition] = useState('top');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -32,6 +34,8 @@ const EditChapter = ({ darkMode, user }) => {
       .then(data => {
         setTitle(data.title);
         setContent(data.content);
+        setAuthorNote(data.author_note || '');
+        setNotePosition(data.note_position === 'bottom' ? 'bottom' : 'top');
         setLoading(false);
       })
       .catch(err => {
@@ -53,7 +57,7 @@ const EditChapter = ({ darkMode, user }) => {
       const res = await fetch(`${API_BASE}/api/chapters/${chapterId}`, {
         method: 'PUT',
         headers: authHeader(user),
-        body: JSON.stringify({ title, content }),
+        body: JSON.stringify({ title, content, author_note: authorNote.trim(), note_position: notePosition }),
       });
 
       if (!res.ok) {
@@ -110,6 +114,38 @@ const EditChapter = ({ darkMode, user }) => {
               onChange={(e) => setContent(e.target.value)}
               required
             />
+          </div>
+
+          {/* Nota del autor (opcional) */}
+          <div style={{ marginBottom: '25px' }}>
+            <label style={labelStyle(theme)}>NOTA DEL AUTOR (OPCIONAL)</label>
+            <textarea
+              style={{ ...inputStyle(theme), height: '100px', fontFamily: "'Inter', sans-serif", lineHeight: '1.6', resize: 'vertical', padding: '15px' }}
+              placeholder="Un comentario para tus lectores (se muestra solo si escribís algo)..."
+              value={authorNote}
+              onChange={(e) => setAuthorNote(e.target.value)}
+              maxLength={2000}
+            />
+            {authorNote.trim() && (
+              <div style={{ display: 'flex', gap: '10px', marginTop: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.8rem', color: theme.textMuted }}>Mostrar la nota:</span>
+                {[['top', 'Arriba del capítulo'], ['bottom', 'Abajo del capítulo']].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setNotePosition(key)}
+                    style={{
+                      padding: '6px 14px', borderRadius: '20px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
+                      border: `1px solid ${notePosition === key ? theme.accent : theme.border}`,
+                      background: notePosition === key ? theme.accent : 'transparent',
+                      color: notePosition === key ? (theme.bg === '#0a0b10' ? '#000' : '#fff') : theme.textMuted,
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="editch-buttons" style={{ display: 'flex', gap: '15px', marginTop: '30px' }}>
