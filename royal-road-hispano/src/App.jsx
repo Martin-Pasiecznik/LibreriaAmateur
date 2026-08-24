@@ -263,6 +263,17 @@ function App() {
   const isReaderRoute = location.pathname.startsWith("/reader");
 
   const [darkMode, setDarkMode] = useState(true);
+  // Toast para avisar que hay que iniciar sesión
+  const [loginNotice, setLoginNotice] = useState("");
+
+  // Si no hay sesión, frena la navegación y muestra el aviso
+  const handleProtectedClick = (e) => {
+    if (!user) {
+      e.preventDefault();
+      setLoginNotice("Debes iniciar sesión para acceder");
+      setTimeout(() => setLoginNotice(""), 3000);
+    }
+  };
   const [featuredBooks, setFeaturedBooks] = useState([]);
   const [recentlyUpdated, setRecentlyUpdated] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -464,20 +475,25 @@ function App() {
                   <Link to="/search" style={{ color: theme.textMain, textDecoration: "none", fontSize: "0.85rem", fontWeight: 600, opacity: 0.7 }}>
                     Explorar
                   </Link>
-                  {user && (
-                    <>
-                      <Link to="/library" style={{ color: theme.textMain, textDecoration: "none", fontSize: "0.85rem", fontWeight: 600, opacity: 0.7 }}>
-                        Mi Biblioteca
-                      </Link>
-                      <Link to="/dashboard" style={{ color: theme.textMain, textDecoration: "none", fontSize: "0.85rem", fontWeight: 600, opacity: 0.7 }}>
-                        Mi Studio
-                      </Link>
-                      {user.is_admin && (
-                        <Link to="/admin" style={{ color: theme.accent, textDecoration: "none", fontSize: "0.85rem", fontWeight: 700 }}>
-                          Admin
-                        </Link>
-                      )}
-                    </>
+                  {/* Visibles siempre: si no hay sesión, avisan en vez de navegar */}
+                  <Link
+                    to="/library"
+                    onClick={handleProtectedClick}
+                    style={{ color: theme.textMain, textDecoration: "none", fontSize: "0.85rem", fontWeight: 600, opacity: user ? 0.7 : 0.4 }}
+                  >
+                    Mi Biblioteca
+                  </Link>
+                  <Link
+                    to="/dashboard"
+                    onClick={handleProtectedClick}
+                    style={{ color: theme.textMain, textDecoration: "none", fontSize: "0.85rem", fontWeight: 600, opacity: user ? 0.7 : 0.4 }}
+                  >
+                    Mi Studio
+                  </Link>
+                  {user && user.is_admin && (
+                    <Link to="/admin" style={{ color: theme.accent, textDecoration: "none", fontSize: "0.85rem", fontWeight: 700 }}>
+                      Admin
+                    </Link>
                   )}
                 </div>
               </div>
@@ -567,20 +583,25 @@ function App() {
                 <Link to="/search" style={{ color: theme.textMain, textDecoration: "none", fontSize: "1rem", fontWeight: 600 }}>
                   Explorar
                 </Link>
-                {user && (
-                  <>
-                    <Link to="/library" style={{ color: theme.textMain, textDecoration: "none", fontSize: "1rem", fontWeight: 600 }}>
-                      Mi Biblioteca
-                    </Link>
-                    <Link to="/dashboard" style={{ color: theme.textMain, textDecoration: "none", fontSize: "1rem", fontWeight: 600 }}>
-                      Mi Studio
-                    </Link>
-                    {user.is_admin && (
-                      <Link to="/admin" style={{ color: theme.accent, textDecoration: "none", fontSize: "1rem", fontWeight: 700 }}>
-                        Admin
-                      </Link>
-                    )}
-                  </>
+                {/* Visibles siempre: si no hay sesión, avisan en vez de navegar */}
+                <Link
+                  to="/library"
+                  onClick={handleProtectedClick}
+                  style={{ color: theme.textMain, textDecoration: "none", fontSize: "1rem", fontWeight: 600, opacity: user ? 1 : 0.45 }}
+                >
+                  Mi Biblioteca
+                </Link>
+                <Link
+                  to="/dashboard"
+                  onClick={handleProtectedClick}
+                  style={{ color: theme.textMain, textDecoration: "none", fontSize: "1rem", fontWeight: 600, opacity: user ? 1 : 0.45 }}
+                >
+                  Mi Studio
+                </Link>
+                {user && user.is_admin && (
+                  <Link to="/admin" style={{ color: theme.accent, textDecoration: "none", fontSize: "1rem", fontWeight: 700 }}>
+                    Admin
+                  </Link>
                 )}
 
                 <div style={{ height: "1px", backgroundColor: theme.border, margin: "2px 0" }} />
@@ -736,11 +757,9 @@ function App() {
                                   backgroundColor: `${theme.accent}15`, padding: "2px 8px",
                                   borderRadius: "4px", fontWeight: 700,
                                 }}>
-                                  {book.category || "General"}
+                                  Puntuación
                                 </span>
-                                <span style={{ fontSize: "0.7rem", color: theme.textMuted }}>
-                                  ⭐ {book.avg_rating ? book.avg_rating.toFixed(1) : "0.0"}
-                                </span>
+                                <StarRating value={book.avg_rating || 0} accent={theme.accent} muted={theme.textMuted} />
                               </div>
                             </div>
                           </div>
@@ -824,10 +843,59 @@ function App() {
           .nav-hamburger { display: flex !important; }
           .main-nav { padding: 10px 18px !important; }
         }
+
+        @keyframes loginNoticeIn {
+          from { transform: translate(-50%, 40px); opacity: 0; }
+          to   { transform: translate(-50%, 0);    opacity: 1; }
+        }
       `}</style>
+
+      {/* Toast: aviso de iniciar sesión */}
+      {loginNotice && (
+        <div style={{
+          position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)",
+          backgroundColor: "#1a1a1a", color: "#fff", padding: "14px 26px",
+          borderRadius: "50px", boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+          zIndex: 99999, fontSize: "0.88rem", fontWeight: 600,
+          border: `1px solid ${theme.accent}`, maxWidth: "90vw", textAlign: "center",
+          animation: "loginNoticeIn 0.35s ease-out",
+        }}>
+          {loginNotice}
+        </div>
+      )}
     </GoogleOAuthProvider>
     </HelmetProvider>
   );
 }
 
 export default App;
+
+// ─────────────────────────────────────────────
+// StarRating — 5 estrellas con relleno parcial exacto.
+// Superpone dos filas: una gris (fondo) y una dorada recortada
+// al porcentaje de la puntuación. Ej: 4,1 → 82% dorado.
+// ─────────────────────────────────────────────
+function StarRating({ value, accent, muted }) {
+  const score = Number(value) || 0;
+  const percent = Math.max(0, Math.min(100, (score / 5) * 100));
+  const stars = "★★★★★";
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+      <span style={{ position: "relative", display: "inline-block", fontSize: "0.85rem", lineHeight: 1, letterSpacing: "1px" }}>
+        {/* Capa de fondo (estrellas vacías) */}
+        <span style={{ color: muted, opacity: 0.35 }}>{stars}</span>
+        {/* Capa dorada recortada al porcentaje */}
+        <span style={{
+          position: "absolute", top: 0, left: 0, width: `${percent}%`,
+          overflow: "hidden", whiteSpace: "nowrap", color: accent,
+        }}>
+          {stars}
+        </span>
+      </span>
+      <span style={{ fontSize: "0.72rem", color: muted, fontWeight: 600 }}>
+        {score.toFixed(1).replace(".", ",")}
+      </span>
+    </span>
+  );
+}
