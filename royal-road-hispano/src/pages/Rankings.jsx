@@ -5,7 +5,8 @@ import CoverImage from '../components/CoverImage';
 
 const Rankings = ({ darkMode }) => {
   const [topBooks, setTopBooks] = useState([]);
-  const [filter, setFilter] = useState("");
+  const [selectedTags, setSelectedTags] = useState([]);  // varios tags (AND)
+  const [sortBy, setSortBy] = useState("views");     // 'views' (default) | 'rating'
 
   // #8 — Estado de scroll infinito
   const [page, setPage] = useState(1);
@@ -59,16 +60,27 @@ const Rankings = ({ darkMode }) => {
     star: darkMode ? '#d4af37' : '#b85b3f'
   };
 
-  // #8 — Al cambiar el filtro: reiniciar a página 1 y recargar desde cero
+  // #8 — Al cambiar filtros u orden: reiniciar a página 1 y recargar desde cero
   useEffect(() => {
     fetchFirstPage();
-  }, [filter]);
+  }, [selectedTags, sortBy]);
 
   const buildUrl = (pageNum) => {
     const params = new URLSearchParams({ page: pageNum, per_page: PER_PAGE });
-    if (filter) params.set('tag', filter);
+    params.set('sort', sortBy);
+    // Varios tags: se repite el parámetro (el backend los combina con AND)
+    selectedTags.forEach(t => params.append('tag', t));
     return `${API_BASE}/api/rankings/top100?${params}`;
   };
+
+  // Agregar / quitar un tag de la selección
+  const toggleTag = (tag) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const clearTags = () => setSelectedTags([]);
 
   const fetchFirstPage = async () => {
     setPage(1);
@@ -101,7 +113,7 @@ const Rankings = ({ darkMode }) => {
       setHasMore(false);
     }
     setLoadingMore(false);
-  }, [page, hasMore, loadingMore, filter]);
+  }, [page, hasMore, loadingMore, selectedTags, sortBy]);
 
   useEffect(() => {
     if (!sentinelRef.current || !hasMore) return;
@@ -137,45 +149,84 @@ const Rankings = ({ darkMode }) => {
         </p>
       </header>
 
-      {/* FILTROS ELEGANTES */}
-      <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '20px', marginBottom: showMoreFilters ? '20px' : '40px', scrollbarWidth: 'none', justifyContent: 'center', flexWrap: 'wrap' }}>
-        {["", ...mainGenres].map(tag => (
+      {/* SELECTOR DE ORDEN */}
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.8rem', color: theme.textMuted, alignSelf: 'center', marginRight: '4px' }}>Ordenar por:</span>
+        {[['views', 'Más vistos'], ['rating', 'Mejor puntuados']].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setSortBy(key)}
+            style={{
+              padding: '7px 18px', borderRadius: '50px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700,
+              border: `1px solid ${sortBy === key ? theme.accent : theme.border}`,
+              background: sortBy === key ? theme.accent : 'transparent',
+              color: sortBy === key ? (darkMode ? '#0a0b10' : '#ffffff') : theme.textMain,
+              fontFamily: "'Inter', sans-serif", transition: 'all 0.3s ease',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* FILTROS ELEGANTES — selección múltiple de tags */}
+      <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '20px', marginBottom: showMoreFilters ? '20px' : '20px', scrollbarWidth: 'none', justifyContent: 'center', flexWrap: 'wrap' }}>
+        {mainGenres.map(tag => (
           <button 
             key={tag}
-            onClick={() => { setFilter(tag); setShowMoreFilters(false); }}
+            onClick={() => toggleTag(tag)}
             style={{
               padding: '8px 22px', borderRadius: '50px', 
-              border: `1px solid ${filter === tag ? theme.accent : theme.border}`,
-              background: filter === tag ? theme.accent : 'transparent',
-              // Si está seleccionado, el texto hace contraste (oscuro en modo oscuro/oro, blanco en modo claro/terracota)
-              color: filter === tag ? (darkMode ? '#0a0b10' : '#ffffff') : theme.textMain,
+              border: `1px solid ${selectedTags.includes(tag) ? theme.accent : theme.border}`,
+              background: selectedTags.includes(tag) ? theme.accent : 'transparent',
+              color: selectedTags.includes(tag) ? (darkMode ? '#0a0b10' : '#ffffff') : theme.textMain,
               cursor: 'pointer', fontWeight: 600, transition: 'all 0.3s ease', whiteSpace: 'nowrap',
-              boxShadow: filter === tag ? `0 0 15px ${theme.accent}40` : 'none',
+              boxShadow: selectedTags.includes(tag) ? `0 0 15px ${theme.accent}40` : 'none',
               fontFamily: "'Inter', sans-serif", fontSize: '0.9rem'
             }}
           >
-            {tag || "Todos los Géneros"}
+            {tag}
           </button>
         ))}
 
-        {/* Botón "Más filtros" — si el filtro activo viene de una categoría
-            secundaria, muestra ese tag en vez del texto genérico */}
+        {/* Botón "Más filtros" */}
         <button
           onClick={() => setShowMoreFilters(prev => !prev)}
           style={{
             padding: '8px 22px', borderRadius: '50px',
-            border: `1px solid ${moreGenreTags.includes(filter) || showMoreFilters ? theme.accent : theme.border}`,
-            background: moreGenreTags.includes(filter) ? theme.accent : 'transparent',
-            color: moreGenreTags.includes(filter) ? (darkMode ? '#0a0b10' : '#ffffff') : theme.accent,
+            border: `1px solid ${showMoreFilters ? theme.accent : theme.border}`,
+            background: 'transparent',
+            color: theme.accent,
             cursor: 'pointer', fontWeight: 700, transition: 'all 0.3s ease', whiteSpace: 'nowrap',
             fontFamily: "'Inter', sans-serif", fontSize: '0.9rem',
             display: 'flex', alignItems: 'center', gap: '6px',
           }}
         >
-          {moreGenreTags.includes(filter) ? filter : 'Más filtros'}
+          Más filtros
           <span style={{ fontSize: '0.7rem', transform: showMoreFilters ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▾</span>
         </button>
       </div>
+
+      {/* Tags activos + botón limpiar */}
+      {selectedTags.length > 0 && (
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', marginBottom: '30px' }}>
+          <span style={{ fontSize: '0.8rem', color: theme.textMuted }}>
+            Filtrando por {selectedTags.length} {selectedTags.length === 1 ? 'etiqueta' : 'etiquetas'}:
+          </span>
+          {selectedTags.map(tag => (
+            <span key={tag} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: '50px', background: `${theme.accent}20`, border: `1px solid ${theme.accent}`, color: theme.accent, fontSize: '0.8rem', fontWeight: 600 }}>
+              {tag}
+              <button onClick={() => toggleTag(tag)} style={{ background: 'none', border: 'none', color: theme.accent, cursor: 'pointer', padding: 0, fontSize: '1rem', lineHeight: 1 }}>×</button>
+            </span>
+          ))}
+          <button
+            onClick={clearTags}
+            style={{ padding: '5px 16px', borderRadius: '50px', border: `1px solid ${theme.border}`, background: 'transparent', color: theme.textMuted, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, fontFamily: "'Inter', sans-serif" }}
+          >
+            Limpiar
+          </button>
+        </div>
+      )}
 
       {/* PANEL DE CATEGORÍAS SECUNDARIAS — compacto, se despliega bajo la fila principal */}
       {showMoreFilters && (
@@ -206,12 +257,12 @@ const Rankings = ({ darkMode }) => {
                   {group.tags.map(tag => (
                     <button
                       key={tag}
-                      onClick={() => setFilter(filter === tag ? '' : tag)}
+                      onClick={() => toggleTag(tag)}
                       style={{
                         padding: '6px 16px', borderRadius: '50px', fontSize: '0.8rem',
-                        border: `1px solid ${filter === tag ? theme.accent : theme.border}`,
-                        background: filter === tag ? theme.accent : 'transparent',
-                        color: filter === tag ? (darkMode ? '#0a0b10' : '#ffffff') : theme.textMain,
+                        border: `1px solid ${selectedTags.includes(tag) ? theme.accent : theme.border}`,
+                        background: selectedTags.includes(tag) ? theme.accent : 'transparent',
+                        color: selectedTags.includes(tag) ? (darkMode ? '#0a0b10' : '#ffffff') : theme.textMain,
                         cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s ease', whiteSpace: 'nowrap',
                       }}
                     >

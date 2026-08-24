@@ -1597,7 +1597,11 @@ def update_profile():
 
 @app.route('/api/rankings/top100', methods=['GET'])
 def get_top_rankings():
-    tag = request.args.get('tag')
+    # Acepta varios tags: ?tag=Terror&tag=Romance  (lógica AND)
+    tags = [t.strip() for t in request.args.getlist('tag') if t.strip()]
+    # Criterio de orden: 'views' (default) o 'rating'
+    sort_by = request.args.get('sort', 'views')
+
     conn = get_db_connection()
     query = '''
         SELECT b.*, AVG(r.score) as avg_rating, COUNT(r.score) as vote_count
@@ -1605,10 +1609,16 @@ def get_top_rankings():
         WHERE b.is_hidden = 0
     '''
     params = []
-    if tag:
+    # AND: el libro debe tener TODOS los tags seleccionados
+    for t in tags:
         query += ' AND b.tags LIKE ?'
-        params.append(f'%{tag}%')
-    query += ' GROUP BY b.id ORDER BY avg_rating DESC, vote_count DESC'
+        params.append(f'%{t}%')
+
+    if sort_by == 'rating':
+        order = ' ORDER BY avg_rating DESC, vote_count DESC, b.views DESC'
+    else:  # 'views' por defecto
+        order = ' ORDER BY b.views DESC, avg_rating DESC'
+    query += ' GROUP BY b.id' + order
 
     # #8 — Paginación opcional dentro del top 100.
     # El ranking sigue teniendo un tope conceptual de 100 libros:
