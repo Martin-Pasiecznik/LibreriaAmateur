@@ -4,6 +4,11 @@ import { Helmet } from 'react-helmet-async';
 import { API_BASE, authHeader } from '../App';
 import CoverImage from '../components/CoverImage';
 
+// Mínimo de clasificaciones para mostrar las estadísticas de lectores.
+// Con pocos datos el número no dice nada y además podría identificar
+// a usuarios individuales. Subilo si la plataforma crece.
+const MIN_STATS_TO_SHOW = 10;
+
 // Categorías de reporte (deben coincidir con las del backend)
 const REPORT_LABELS = {
   ai_generated:  'Contenido generado por IA',
@@ -66,6 +71,8 @@ const BookDetail = ({ user, darkMode }) => {
   const [errorMsg, setErrorMsg] = useState("");
 
   const [rating, setRating]               = useState({ average: 0, total: 0, userScore: 0 });
+  // Cuántos usuarios clasificaron este libro en cada estado
+  const [libStats, setLibStats] = useState(null);
   const [hover, setHover]                 = useState(0);
   const [readingStatus, setReadingStatus] = useState("");
   const [libraryStatus, setLibraryStatus] = useState(null);
@@ -122,6 +129,11 @@ const BookDetail = ({ user, darkMode }) => {
   useEffect(() => {
     fetch(`${API_BASE}/api/books/${id}`).then(r => r.json()).then(setBook);
     fetch(`${API_BASE}/api/books/${id}/chapters`).then(r => r.json()).then(d => setChapters(Array.isArray(d) ? d : []));
+    // Estadísticas de clasificación — públicas, no requieren sesión
+    fetch(`${API_BASE}/api/books/${id}/library-stats`)
+      .then(r => r.json())
+      .then(setLibStats)
+      .catch(() => {});
     fetchComments();
 
     if (user?.session_token) {
@@ -342,6 +354,30 @@ const BookDetail = ({ user, darkMode }) => {
                 : `(${rating.total} ${rating.total === 1 ? 'reseña' : 'reseñas'})`}
             </span>
           </div>
+
+          {/* CÓMO LO CLASIFICAN LOS LECTORES — solo si hay suficientes datos */}
+          {libStats && libStats.total >= MIN_STATS_TO_SHOW && (
+            <div style={{ marginBottom: '30px' }}>
+              <label style={{ fontSize: '0.7rem', fontWeight: 800, display: 'block', marginBottom: '12px', opacity: 0.6, letterSpacing: '2px' }}>
+                LECTORES ({libStats.total})
+              </label>
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                {[
+                  ['reading',   'Leyendo',    theme.accent],
+                  ['completed', 'Leído',      darkMode ? '#6b8e6b' : '#4a7a4a'],
+                  ['pending',   'Pendiente',  theme.textMuted],
+                  ['dropped',   'Abandonado', darkMode ? '#a67b7b' : '#8a5c5c'],
+                ].map(([key, label, color]) => (
+                  <div key={key} style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                    <span style={{ fontSize: '1.15rem', fontWeight: 700, color, fontFamily: "'Crimson Pro', serif" }}>
+                      {libStats[key] || 0}
+                    </span>
+                    <span style={{ fontSize: '0.78rem', color: theme.textMuted }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* BIBLIOTECA */}
           <div style={{ marginBottom: '40px' }}>

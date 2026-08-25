@@ -30,13 +30,19 @@ const MyLibrary = ({ user, darkMode }) => {
       .catch(err => console.error('Error cargando biblioteca:', err));
   }, [user]);
 
-  const filteredBooks = filter === 'all' ? books : books.filter(b => b.status === filter);
+  // Un libro sin clasificar tiene status NULL (lo leíste pero no lo categorizaste)
+  const filteredBooks = filter === 'all'
+    ? books
+    : filter === 'unclassified'
+      ? books.filter(b => !b.status)
+      : books.filter(b => b.status === filter);
 
   const statusLabels = {
     reading:   { text: 'Leyendo',     color: theme.accent },
     completed: { text: 'Leído',       color: darkMode ? '#4a5d4a' : '#6b8e6b' },
     pending:   { text: 'Pendiente',   color: theme.textMuted },
     dropped:   { text: 'Abandonado',  color: darkMode ? '#5c3d3d' : '#a67b7b' },
+    unclassified: { text: 'Sin clasificar', color: darkMode ? '#5a5a6e' : '#9a9aa8' },
   };
 
   if (!user) {
@@ -59,7 +65,7 @@ const MyLibrary = ({ user, darkMode }) => {
       </header>
 
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '50px', flexWrap: 'wrap' }}>
-        {['all', 'reading', 'pending', 'completed', 'dropped'].map(f => (
+        {['all', 'reading', 'pending', 'completed', 'dropped', 'unclassified'].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -104,9 +110,9 @@ const MyLibrary = ({ user, darkMode }) => {
                 backgroundColor: 'rgba(0,0,0,0.7)', color: '#fff',
                 fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase',
                 letterSpacing: '1px', backdropFilter: 'blur(4px)',
-                borderLeft: `3px solid ${statusLabels[book.status]?.color || theme.textMuted}`,
+                borderLeft: `3px solid ${statusLabels[book.status]?.color || statusLabels.unclassified.color}`,
               }}>
-                {statusLabels[book.status]?.text || book.status}
+                {statusLabels[book.status]?.text || 'Sin clasificar'}
               </div>
             </div>
             <h4 style={{ margin: '0 0 5px 0', fontSize: '1.05rem', fontFamily: "'Crimson Pro', serif", fontWeight: 600, lineHeight: '1.2' }}>

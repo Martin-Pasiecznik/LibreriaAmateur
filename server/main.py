@@ -1718,8 +1718,12 @@ def get_library_stats(book_id):
         conn.close()
         result = {"reading": 0, "pending": 0, "completed": 0, "dropped": 0}
         for row in stats:
-            if row['status'].lower() in result:
-                result[row['status'].lower()] = row['count']
+            # status puede ser NULL (libro sin clasificar) → se ignora
+            st = (row['status'] or '').lower()
+            if st in result:
+                result[st] = row['count']
+        # Total de clasificaciones reales (sin contar los NULL)
+        result['total'] = sum(result[k] for k in ('reading', 'pending', 'completed', 'dropped'))
         return jsonify(result), 200
     except Exception as e:
         print(f"[Stats] Error: {e}")
