@@ -323,16 +323,24 @@ const BookDetail = ({ user, darkMode }) => {
           </div>
           {/* ══ FIN ESTADO + FECHA ═════════════════════════════════════════ */}
 
-          {/* ESTRELLAS */}
-          <div style={{ marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{ display: 'flex' }}>
-              {[1,2,3,4,5].map(star => (
-                <button key={star} onClick={() => handleRate(star)} onMouseEnter={() => setHover(star)} onMouseLeave={() => setHover(0)}
-                  style={{ fontSize: '32px', cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: star <= (hover || rating.userScore) ? theme.star : `${theme.textMuted}33`, transition: 'transform 0.2s' }}>★</button>
-              ))}
-            </div>
-            <span style={{ fontSize: '2rem', fontWeight: 300, fontFamily: "'Crimson Pro', serif" }}>{rating.average.toFixed(1)}</span>
-            <span style={{ color: theme.textMuted, fontSize: '0.8rem', marginTop: '8px' }}>({rating.total} reseñas)</span>
+          {/* PUNTUACIÓN PROMEDIO (visual, con relleno parcial) */}
+          <div style={{ marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <span style={{ position: 'relative', display: 'inline-block', fontSize: '30px', lineHeight: 1, letterSpacing: '2px' }}>
+              <span style={{ color: `${theme.textMuted}33` }}>★★★★★</span>
+              <span style={{
+                position: 'absolute', top: 0, left: 0,
+                width: `${Math.max(0, Math.min(100, (rating.average / 5) * 100))}%`,
+                overflow: 'hidden', whiteSpace: 'nowrap', color: theme.star,
+              }}>★★★★★</span>
+            </span>
+            <span style={{ fontSize: '2rem', fontWeight: 300, fontFamily: "'Crimson Pro', serif" }}>
+              {rating.average.toFixed(1).replace('.', ',')}
+            </span>
+            <span style={{ color: theme.textMuted, fontSize: '0.85rem' }}>
+              {rating.total === 0
+                ? 'Sin calificaciones aún'
+                : `(${rating.total} ${rating.total === 1 ? 'reseña' : 'reseñas'})`}
+            </span>
           </div>
 
           {/* BIBLIOTECA */}
@@ -534,8 +542,33 @@ const BookDetail = ({ user, darkMode }) => {
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <label style={{ fontSize: '0.7rem', fontWeight: 800, color: theme.textMuted, display: 'block', marginBottom: '10px' }}>TU CALIFICACIÓN</label>
-              <div style={{ padding: '8px 0' }}>{renderStars(rating.userScore)}</div>
+              <label style={{ fontSize: '0.7rem', fontWeight: 800, color: theme.textMuted, display: 'block', marginBottom: '10px', letterSpacing: '1px' }}>TU CALIFICACIÓN</label>
+              <div style={{ padding: '4px 0', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '2px' }}>
+                  {[1,2,3,4,5].map(star => (
+                    <button
+                      key={star}
+                      onClick={() => handleRate(star)}
+                      onMouseEnter={() => setHover(star)}
+                      onMouseLeave={() => setHover(0)}
+                      disabled={!user}
+                      style={{
+                        fontSize: '38px', lineHeight: 1, background: 'none', border: 'none', padding: 0,
+                        cursor: user ? 'pointer' : 'not-allowed',
+                        color: star <= (hover || rating.userScore) ? theme.star : `${theme.textMuted}33`,
+                        transition: 'transform 0.2s, color 0.2s',
+                        transform: hover === star ? 'scale(1.15)' : 'scale(1)',
+                      }}
+                    >★</button>
+                  ))}
+                </div>
+                {rating.userScore > 0 && (
+                  <span style={{ fontSize: '0.8rem', color: theme.accent, fontWeight: 600 }}>{rating.userScore} / 5</span>
+                )}
+              </div>
+              {!user && (
+                <span style={{ fontSize: '0.72rem', color: theme.textMuted, fontStyle: 'italic' }}>Iniciá sesión para calificar</span>
+              )}
             </div>
           </div>
 

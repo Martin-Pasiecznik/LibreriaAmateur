@@ -381,7 +381,10 @@ const AdvancedSearch = ({ darkMode }) => {
                   />
                 </div>
                 <div style={{ padding: '20px 15px' }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '1.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: "'Crimson Pro', serif", color: theme.textMain }}>{book.title}</h4>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: "'Crimson Pro', serif", color: theme.textMain }}>{book.title}</h4>
+                  <p style={{ margin: '0 0 12px 0', fontSize: '0.82rem', color: theme.accent, fontStyle: 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    por {book.author || 'Autor Anónimo'}
+                  </p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ color: theme.star, fontWeight: 700, fontSize: '1.1rem' }}>{book.avg_rating?.toFixed(1) || '0.0'}</span>
