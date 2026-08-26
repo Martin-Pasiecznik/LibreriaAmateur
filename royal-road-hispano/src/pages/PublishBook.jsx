@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE } from '../App';
+import { MAIN_GENRES, GENRE_GROUPS, MAX_GENRES, MAX_FREE_TAGS, MAX_FREE_TAG_LENGTH } from '../genres';
 
 const PublishBook = ({ user, darkMode, refreshBooks }) => {
   const [title, setTitle] = useState('');
   const [authorName, setAuthorName] = useState(user?.name || '');
   const [description, setDescription] = useState('');
   const [bookNote, setBookNote] = useState('');
-  const [tags, setTags] = useState('');
+  const [selectedGenres, setSelectedGenres] = useState([]);  // lista cerrada
+  const [freeTags, setFreeTags] = useState([]);              // libres del autor
+  const [freeTagInput, setFreeTagInput] = useState('');
+  const [showMoreGenres, setShowMoreGenres] = useState(false);
   const [isAdult, setIsAdult] = useState(false);
   const [cover, setCover] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -23,30 +27,36 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
     inputBg: darkMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)',
   };
 
-  const suggestedGenres = [
-  // Géneros principales
-  "Fantasía", "Romance", "Terror", "Misterio", "Ciencia Ficción", "Aventura",
-  "Drama", "Acción", "Comedia", "Thriller", "+18",
+  // Agregar / quitar un género (tope: MAX_GENRES)
+  const toggleGenre = (genre) => {
+    setSelectedGenres(prev => {
+      if (prev.includes(genre)) return prev.filter(g => g !== genre);
+      if (prev.length >= MAX_GENRES) return prev;   // no supera el tope
+      return [...prev, genre];
+    });
+  };
 
-  // Subgéneros populares en webnovelas
-  "Isekai", "LitRPG", "Magia", "Mazmorra", "Reencarnación", "Regresión",
-  "Sistema", "Cultivación", "Wuxia", "Xianxia",
+  // Confirmar una etiqueta libre (Enter o coma)
+  const addFreeTag = () => {
+    const t = freeTagInput.trim().replace(/,/g, '');
+    if (!t) return;
+    if (t.length > MAX_FREE_TAG_LENGTH) return;
+    if (freeTags.length >= MAX_FREE_TAGS) return;
+    // Sin duplicados (ignorando mayúsculas)
+    if (freeTags.some(x => x.toLowerCase() === t.toLowerCase())) {
+      setFreeTagInput('');
+      return;
+    }
+    setFreeTags(prev => [...prev, t]);
+    setFreeTagInput('');
+  };
 
-  // Romance y slice of life
-  "Slice of Life", "Romance Moderno", "BL", "GL", "Harem", "Amor Prohibido",
+  const removeFreeTag = (tag) => setFreeTags(prev => prev.filter(t => t !== tag));
 
-  // Ambientación
-  "Mundo Apocalíptico", "Distopía", "Steampunk", "Cyberpunk", "Fantasía Oscura",
-  "Alta Fantasía", "Fantasía Urbana", "Histórico", "Medieval",
-
-  // Protagonista y tono
-  "Protagonista Femenina", "Protagonista Masculino", "Anti-héroe",
-  "Slow Burn", "Dark", "Fluffy", "Mature", "Guerra",
-];
-
-  const handleGenreClick = (genre) => {
-    if (!tags.includes(genre)) {
-      setTags(tags === "" ? genre : `${tags}, ${genre}`);
+  const handleFreeTagKey = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addFreeTag();
     }
   };
 
@@ -79,7 +89,8 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
     formData.append('book_note', bookNote.trim());
     formData.append('is_adult', isAdult ? '1' : '0');
     // author_email ya no se usa: el backend lo toma del token
-    formData.append('tags', tags);
+    formData.append('tags', selectedGenres.join(', '));
+    formData.append('free_tags', freeTags.join(', '));
     if (cover) formData.append('cover', cover);
 
     try {
@@ -174,20 +185,127 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
             maxLength={2000}
           />
 
-          <label style={labelStyle(theme)}>GÉNEROS Y ETIQUETAS</label>
-          <input
-            placeholder="Terror, Suspenso, Cyberpunk..."
-            value={tags}
-            onChange={e => setTags(e.target.value)}
-            style={inputStyle(theme)}
-          />
+          {/* ── GÉNEROS (lista cerrada) ── */}
+          <label style={labelStyle(theme)}>
+            GÉNEROS ({selectedGenres.length}/{MAX_GENRES})
+          </label>
+          <p style={{ fontSize: '0.75rem', color: theme.textMuted, marginTop: '-4px', marginBottom: '14px' }}>
+            Elegí los géneros que definen tu obra. Son los que usan los lectores para filtrar y buscar.
+          </p>
 
-          <div style={{ marginBottom: '30px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {suggestedGenres.map(genre => (
-              <button key={genre} type="button" onClick={() => handleGenreClick(genre)} style={genreBtnStyle(theme)}>
-                + {genre}
-              </button>
-            ))}
+          {/* Géneros seleccionados */}
+          {selectedGenres.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+              {selectedGenres.map(g => (
+                <span key={g} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '6px 14px', borderRadius: '20px', background: theme.accent, color: darkMode ? '#0a0b10' : '#fff', fontSize: '0.8rem', fontWeight: 700 }}>
+                  {g}
+                  <button type="button" onClick={() => toggleGenre(g)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: '1rem', lineHeight: 1 }}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Principales */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+            {MAIN_GENRES.map(genre => {
+              const sel = selectedGenres.includes(genre);
+              const full = !sel && selectedGenres.length >= MAX_GENRES;
+              return (
+                <button
+                  key={genre} type="button" onClick={() => toggleGenre(genre)} disabled={full}
+                  style={{
+                    ...genreBtnStyle(theme),
+                    border: `1px solid ${sel ? theme.accent : theme.border}`,
+                    background: sel ? `${theme.accent}20` : 'transparent',
+                    color: sel ? theme.accent : theme.textMuted,
+                    opacity: full ? 0.35 : 1,
+                    cursor: full ? 'not-allowed' : 'pointer',
+                    fontWeight: sel ? 700 : 600,
+                  }}
+                >
+                  {sel ? '✓ ' : '+ '}{genre}
+                </button>
+              );
+            })}
+            <button
+              type="button" onClick={() => setShowMoreGenres(v => !v)}
+              style={{ ...genreBtnStyle(theme), color: theme.accent, borderColor: showMoreGenres ? theme.accent : theme.border, fontWeight: 700 }}
+            >
+              Más géneros {showMoreGenres ? '▴' : '▾'}
+            </button>
+          </div>
+
+          {/* Panel de géneros secundarios */}
+          {showMoreGenres && (
+            <div style={{ marginBottom: '16px', padding: '18px', borderRadius: '14px', border: `1px solid ${theme.border}`, background: theme.inputBg }}>
+              {GENRE_GROUPS.map(group => (
+                <div key={group.title} style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: theme.accent, letterSpacing: '1px', marginBottom: '10px', opacity: 0.75 }}>
+                    {group.title.toUpperCase()}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
+                    {group.tags.map(genre => {
+                      const sel = selectedGenres.includes(genre);
+                      const full = !sel && selectedGenres.length >= MAX_GENRES;
+                      return (
+                        <button
+                          key={genre} type="button" onClick={() => toggleGenre(genre)} disabled={full}
+                          style={{
+                            ...genreBtnStyle(theme),
+                            fontSize: '0.72rem',
+                            border: `1px solid ${sel ? theme.accent : theme.border}`,
+                            background: sel ? `${theme.accent}20` : 'transparent',
+                            color: sel ? theme.accent : theme.textMuted,
+                            opacity: full ? 0.35 : 1,
+                            cursor: full ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {sel ? '✓ ' : ''}{genre}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── ETIQUETAS LIBRES ── */}
+          <label style={labelStyle(theme)}>
+            ETIQUETAS LIBRES ({freeTags.length}/{MAX_FREE_TAGS}) — OPCIONAL
+          </label>
+          <p style={{ fontSize: '0.75rem', color: theme.textMuted, marginTop: '-4px', marginBottom: '12px' }}>
+            Palabras tuyas para describir la obra. Se muestran en la ficha, pero no se usan para filtrar.
+          </p>
+
+          {freeTags.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+              {freeTags.map(t => (
+                <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 12px', borderRadius: '20px', border: `1px dashed ${theme.border}`, color: theme.textMuted, fontSize: '0.78rem' }}>
+                  {t}
+                  <button type="button" onClick={() => removeFreeTag(t)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: '0.95rem', lineHeight: 1 }}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '30px' }}>
+            <input
+              placeholder={freeTags.length >= MAX_FREE_TAGS ? 'Llegaste al máximo de etiquetas' : 'Escribí y presioná Enter...'}
+              value={freeTagInput}
+              onChange={e => setFreeTagInput(e.target.value)}
+              onKeyDown={handleFreeTagKey}
+              disabled={freeTags.length >= MAX_FREE_TAGS}
+              maxLength={MAX_FREE_TAG_LENGTH}
+              style={{ ...inputStyle(theme), marginBottom: 0, flex: 1 }}
+            />
+            <button
+              type="button" onClick={addFreeTag}
+              disabled={!freeTagInput.trim() || freeTags.length >= MAX_FREE_TAGS}
+              style={{ padding: '0 22px', borderRadius: '12px', border: `1px solid ${theme.border}`, background: 'transparent', color: theme.accent, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem', opacity: freeTagInput.trim() ? 1 : 0.4 }}
+            >
+              Agregar
+            </button>
           </div>
 
           {/* +18 — contenido adulto */}

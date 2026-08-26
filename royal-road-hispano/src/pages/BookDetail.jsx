@@ -406,20 +406,45 @@ const BookDetail = ({ user, darkMode }) => {
           )}
 
 
-          <label style={{ fontSize: '0.7rem', fontWeight: 800, display: 'block', marginBottom: '12px', opacity: 0.6, letterSpacing: '2px' }}>ETIQUETAS</label>
-          {book.tags && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '40px' }}>
-              {book.tags.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
-                <span key={tag} style={{
-                  padding: '5px 14px', borderRadius: '20px',
-                  fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.3px',
-                  backgroundColor: `${theme.accent}15`, color: theme.accent,
-                  border: `1px solid ${theme.accent}35`,
-                }}>
-                  {tag}
-                </span>
-              ))}
-            </div>
+          {/* GÉNEROS — clickeables, llevan al filtro de rankings */}
+          {book.tags && book.tags.trim() && (
+            <>
+              <label style={{ fontSize: '0.7rem', fontWeight: 800, display: 'block', marginBottom: '12px', opacity: 0.6, letterSpacing: '2px' }}>GÉNEROS</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+                {book.tags.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
+                  <Link
+                    key={tag}
+                    to={`/rankings?tag=${encodeURIComponent(tag)}`}
+                    style={{
+                      padding: '5px 14px', borderRadius: '20px', textDecoration: 'none',
+                      fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.3px',
+                      backgroundColor: `${theme.accent}15`, color: theme.accent,
+                      border: `1px solid ${theme.accent}35`,
+                    }}
+                  >
+                    {tag}
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* ETIQUETAS DEL AUTOR — decorativas, no filtran */}
+          {book.free_tags && book.free_tags.trim() && (
+            <>
+              <label style={{ fontSize: '0.7rem', fontWeight: 800, display: 'block', marginBottom: '12px', opacity: 0.6, letterSpacing: '2px' }}>ETIQUETAS DEL AUTOR</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '40px' }}>
+                {book.free_tags.split(',').map(t => t.trim()).filter(Boolean).map(tag => (
+                  <span key={tag} style={{
+                    padding: '5px 13px', borderRadius: '20px',
+                    fontSize: '0.75rem', fontWeight: 500,
+                    color: theme.textMuted, border: `1px dashed ${theme.border}`,
+                  }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </>
           )}
 
           {/* Botón de reportar */}

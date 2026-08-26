@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE } from '../App';
 import CoverImage from '../components/CoverImage';
+import { MAIN_GENRES, GENRE_GROUPS } from '../genres';
 
 const AdvancedSearch = ({ darkMode }) => {
   const [results, setResults] = useState([]);
@@ -26,27 +27,10 @@ const AdvancedSearch = ({ darkMode }) => {
 
   // Tags agrupados por categoría — permite mostrarlos en un acordeón
   // en vez de una lista plana interminable.
+  // Géneros desde la lista centralizada (genres.js)
   const tagGroups = [
-    {
-      name: 'Géneros principales',
-      tags: ["Fantasía", "Romance", "Terror", "Misterio", "Ciencia Ficción", "Aventura", "Drama", "Acción", "Comedia", "Thriller"],
-    },
-    {
-      name: 'Subgéneros',
-      tags: ["Isekai", "LitRPG", "Magia", "Mazmorra", "Reencarnación", "Regresión", "Sistema", "Cultivación", "Wuxia", "Xianxia"],
-    },
-    {
-      name: 'Romance y Slice of Life',
-      tags: ["Slice of Life", "Romance Moderno", "BL", "GL", "Harem", "Amor Prohibido"],
-    },
-    {
-      name: 'Ambientación',
-      tags: ["Mundo Apocalíptico", "Distopía", "Steampunk", "Cyberpunk", "Fantasía Oscura", "Alta Fantasía", "Fantasía Urbana", "Histórico", "Medieval"],
-    },
-    {
-      name: 'Protagonista y Tono',
-      tags: ["Protagonista Femenina", "Protagonista Masculino", "Anti-héroe", "Slow Burn", "Dark", "Fluffy", "Mature"],
-    },
+    { name: 'Géneros principales', tags: MAIN_GENRES },
+    ...GENRE_GROUPS.map(g => ({ name: g.title, tags: g.tags })),
   ];
 
   // Qué categorías están desplegadas. Por defecto solo la primera,

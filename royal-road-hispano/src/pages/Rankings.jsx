@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE } from '../App';
 import CoverImage from '../components/CoverImage';
+import { MAIN_GENRES, GENRE_GROUPS } from '../genres';
 
 const Rankings = ({ darkMode }) => {
   const [topBooks, setTopBooks] = useState([]);
@@ -16,31 +17,9 @@ const Rankings = ({ darkMode }) => {
   const PER_PAGE = 20;
 
   // Géneros principales — siempre visibles como pills en la fila de arriba
-  const mainGenres = ["Fantasía", "Romance", "Terror", "Ciencia Ficción", "Drama"];
-
-  // Resto de categorías — agrupadas y escondidas detrás de "Más filtros"
-  // para no llenar la pantalla de pills.
-  const moreGenreGroups = [
-    {
-      name: 'Subgéneros',
-      tags: ["Isekai", "LitRPG", "Magia", "Mazmorra", "Reencarnación", "Regresión", "Sistema", "Cultivación", "Wuxia", "Xianxia"],
-    },
-    {
-      name: 'Romance y Slice of Life',
-      tags: ["Slice of Life", "Romance Moderno", "BL", "GL", "Harem", "Amor Prohibido"],
-    },
-    {
-      name: 'Ambientación',
-      tags: ["Mundo Apocalíptico", "Distopía", "Steampunk", "Cyberpunk", "Fantasía Oscura", "Alta Fantasía", "Fantasía Urbana", "Histórico", "Medieval"],
-    },
-    {
-      name: 'Protagonista y Tono',
-      tags: ["Protagonista Femenina", "Protagonista Masculino", "Anti-héroe", "Slow Burn", "Dark", "Fluffy", "Mature"],
-    },
-  ];
-
-  // Lista plana de todos los tags "secundarios" — usado para saber si el
-  // filtro activo viene de ahí y mostrarlo en el botón "Más filtros"
+  // Géneros desde la lista centralizada (genres.js)
+  const mainGenres = MAIN_GENRES;
+  const moreGenreGroups = GENRE_GROUPS.map(g => ({ name: g.title, tags: g.tags }));
   const moreGenreTags = moreGenreGroups.flatMap(g => g.tags);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
 
