@@ -41,7 +41,8 @@ def init_db():
         created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
         is_adult     INTEGER DEFAULT 0,
         is_hidden    INTEGER DEFAULT 0,
-        book_note    TEXT
+        book_note    TEXT,
+        free_tags    TEXT
     )''')
 
     # ── 3. CAPÍTULOS ───────────────────────────────────────────────────────────

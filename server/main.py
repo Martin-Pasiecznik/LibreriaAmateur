@@ -105,6 +105,80 @@ MAX_TITLE_CHARS   = 100        # título de novela
 MAX_DESC_CHARS    = 2_000      # sinopsis (varios párrafos)
 MAX_AUTHOR_CHARS  = 50         # nombre / pseudónimo del autor
 MAX_COMMENT_CHARS = 3_000
+
+# ── GÉNEROS OFICIALES ─────────────────────────────────────────────────────
+# Lista cerrada. Solo estos valores pueden ir en el campo `tags`.
+# Debe coincidir con genres.js del frontend.
+VALID_GENRES = {
+    # Principales
+    'Acción', 'Aventura', 'Ciencia Ficción', 'Comedia', 'Drama',
+    'Fantasía', 'Misterio', 'Romance', 'Terror', 'Thriller',
+    # Subgéneros de webnovela
+    'Cultivación', 'LitRPG', 'Magia', 'Mazmorra', 'Reencarnación',
+    'Regresión', 'Sistema', 'Isekai', 'Wuxia', 'Xianxia',
+    # Romance y vida cotidiana
+    'Amor Prohibido', 'BL', 'GL', 'Harem', 'Romance Moderno',
+    'Slice of Life', 'Slow Burn', 'Triángulo Amoroso',
+    # Ambientación
+    'Alta Fantasía', 'Ciberpunk', 'Distopía', 'Fantasía Oscura',
+    'Fantasía Urbana', 'Histórico', 'Medieval', 'Mundo Apocalíptico',
+    'Post-Apocalíptico', 'Space Opera', 'Steampunk', 'Western',
+    # Protagonista y tono
+    'Anti-héroe', 'Dark', 'Fluffy', 'Guerra', 'Narrador Poco Fiable',
+    'Protagonista Femenina', 'Protagonista Masculino',
+    'Protagonista Múltiple', 'Redención', 'Venganza',
+    # Otros
+    'Antología', 'Biográfico', 'Crimen', 'Deportes', 'Ensayo',
+    'Filosófico', 'Gastronomía', 'Infantil', 'Juvenil', 'Musical',
+    'Poesía', 'Psicológico', 'Realismo Mágico', 'Sobrenatural',
+    'Superhéroes', 'Suspenso', 'Tragedia',
+}
+MAX_GENRES = 8
+MAX_FREE_TAGS = 10
+MAX_FREE_TAG_LENGTH = 30
+
+
+def clean_genres(raw):
+    """
+    Filtra una cadena de géneros dejando solo los válidos de la lista
+    cerrada, sin duplicados, ordenados alfabéticamente y con tope.
+    Devuelve (cadena_limpia, error_o_None).
+    """
+    if not raw:
+        return '', None
+    items = [t.strip() for t in raw.split(',') if t.strip()]
+    # Solo los que están en la lista oficial
+    valid = []
+    for t in items:
+        if t in VALID_GENRES and t not in valid:
+            valid.append(t)
+    if len(valid) > MAX_GENRES:
+        return '', f'Máximo {MAX_GENRES} géneros permitidos.'
+    valid.sort(key=lambda s: s.lower())
+    return ', '.join(valid), None
+
+
+def clean_free_tags(raw):
+    """
+    Normaliza las etiquetas libres: recorta, quita duplicados
+    (sin distinguir mayúsculas), limita cantidad y longitud.
+    Devuelve (cadena_limpia, error_o_None).
+    """
+    if not raw:
+        return '', None
+    items = [t.strip() for t in raw.split(',') if t.strip()]
+    seen, cleaned = set(), []
+    for t in items:
+        if len(t) > MAX_FREE_TAG_LENGTH:
+            return '', f'Cada etiqueta puede tener hasta {MAX_FREE_TAG_LENGTH} caracteres.'
+        key = t.lower()
+        if key not in seen:
+            seen.add(key)
+            cleaned.append(t)
+    if len(cleaned) > MAX_FREE_TAGS:
+        return '', f'Máximo {MAX_FREE_TAGS} etiquetas libres permitidas.'
+    cleaned.sort(key=lambda s: s.lower())
+    return ', '.join(cleaned), None
 MAX_TAGS_CHARS    = 500
 MAX_NICKNAME_CHARS = 100
 
@@ -138,7 +212,8 @@ def init_db_internal():
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         is_adult INTEGER DEFAULT 0,
         is_hidden INTEGER DEFAULT 0,
-        book_note TEXT)''')
+        book_note TEXT,
+        free_tags TEXT)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS chapters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -847,10 +922,18 @@ def handle_books():
         if err:
             return jsonify({"error": err}), 400
 
+        # Géneros: solo los de la lista cerrada. Etiquetas libres: aparte.
+        tags, gerr = clean_genres(tags)
+        if gerr:
+            return jsonify({"error": gerr}), 400
+        free_tags, ferr = clean_free_tags(request.form.get('free_tags'))
+        if ferr:
+            return jsonify({"error": ferr}), 400
+
         conn = get_db_connection()
         conn.execute('''
-            INSERT INTO books (title, author, author_email, description, author_note, tags, created_at, is_adult, book_note)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)
+            INSERT INTO books (title, author, author_email, description, author_note, tags, created_at, is_adult, book_note, free_tags)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?)
         ''', (
             title,
             request.form.get('author'),
@@ -859,7 +942,8 @@ def handle_books():
             filename,
             tags,
             is_adult,
-            book_note
+            book_note,
+            free_tags
         ))
         conn.commit()
         conn.close()
@@ -1009,6 +1093,14 @@ def update_book_details(book_id):
     # Nota del autor a nivel libro (opcional)
     book_note = (request.form.get('book_note') or '').strip()
 
+    # Géneros validados contra la lista cerrada + etiquetas libres
+    tags, gerr = clean_genres(tags)
+    if gerr:
+        return jsonify({"error": gerr}), 400
+    free_tags, ferr = clean_free_tags(request.form.get('free_tags'))
+    if ferr:
+        return jsonify({"error": ferr}), 400
+
     conn = get_db_connection()
     if file and file.filename != '':
         try:
@@ -1022,19 +1114,19 @@ def update_book_details(book_id):
                 "JPEG", quality=82, optimize=True
             )
             conn.execute(
-                'UPDATE books SET title = ?, description = ?, tags = ?, author_note = ?, is_adult = ?, book_note = ? WHERE id = ?',
-                (title, description, tags, filename, is_adult, book_note, book_id)
+                'UPDATE books SET title = ?, description = ?, tags = ?, author_note = ?, is_adult = ?, book_note = ?, free_tags = ? WHERE id = ?',
+                (title, description, tags, filename, is_adult, book_note, free_tags, book_id)
             )
         except Exception as e:
             print(f"[Cover] Error procesando imagen: {e}")
             conn.execute(
-                'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ? WHERE id = ?',
-                (title, description, tags, is_adult, book_note, book_id)
+                'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ?, free_tags = ? WHERE id = ?',
+                (title, description, tags, is_adult, book_note, free_tags, book_id)
             )
     else:
         conn.execute(
-            'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ? WHERE id = ?',
-            (title, description, tags, is_adult, book_note, book_id)
+            'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ?, free_tags = ? WHERE id = ?',
+            (title, description, tags, is_adult, book_note, free_tags, book_id)
         )
 
     conn.commit()

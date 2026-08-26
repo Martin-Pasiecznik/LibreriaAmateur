@@ -1,0 +1,30 @@
+REGISTRO DE MIGRACIONES — Librería Amateur
+Aplicar en producción cada vez que se agregue una columna.
+
+2026-08 — Panel de admin
+  ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0;
+  ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0;
+
+2026-08 — Moderación (borrado suave)
+  ALTER TABLE books ADD COLUMN is_hidden INTEGER DEFAULT 0;
+  ALTER TABLE comments ADD COLUMN is_hidden INTEGER DEFAULT 0;
+
+2026-08 — Contenido +18 y fechas
+  ALTER TABLE books ADD COLUMN is_adult INTEGER DEFAULT 0;
+  ALTER TABLE books ADD COLUMN created_at DATETIME;
+  ALTER TABLE chapters ADD COLUMN updated_at DATETIME;
+
+2026-08-26 — Notas de autor
+  ALTER TABLE books ADD COLUMN book_note TEXT;
+  ALTER TABLE chapters ADD COLUMN author_note TEXT;
+  ALTER TABLE chapters ADD COLUMN note_position TEXT DEFAULT 'top';
+
+2026-08 — Sistema de reportes
+  (tabla nueva: reports — ver init_db.py)
+
+///a tener en cuenta: Perfecto. El problema era el WAL reteniendo el cambio sin persistirlo — buen caso para tener en el radar: si un ALTER TABLE parece aplicarse pero la app no lo ve, forzá el checkpoint (PRAGMA wal_checkpoint(TRUNCATE)) y verificá con un SELECT real, no solo con PRAGMA table_info.
+
+2026-08
+sqlite3 database.db "ALTER TABLE books ADD COLUMN free_tags TEXT;"
+sqlite3 database.db "PRAGMA wal_checkpoint(TRUNCATE);"
+sqlite3 database.db "SELECT free_tags FROM books LIMIT 1;"
