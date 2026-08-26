@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API_BASE, authHeader } from '../App';
+import FormatToolbar from '../components/FormatToolbar';
 
 // user ahora es requerido — lo pasamos desde App.jsx (ya actualizado)
 const EditChapter = ({ darkMode, user }) => {
@@ -13,6 +14,7 @@ const EditChapter = ({ darkMode, user }) => {
   const [notePosition, setNotePosition] = useState('top');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const contentRef = useRef(null);   // para la barra de formato
 
   const theme = {
     bg: darkMode ? '#0a0b10' : '#f4f0ea',
@@ -107,7 +109,14 @@ const EditChapter = ({ darkMode, user }) => {
 
           <div style={{ marginBottom: '25px' }}>
             <label style={labelStyle(theme)}>CONTENIDO DE LA OBRA</label>
+            <FormatToolbar
+              textareaRef={contentRef}
+              value={content}
+              onChange={setContent}
+              theme={theme}
+            />
             <textarea
+              ref={contentRef}
               className="editch-textarea"
               style={{ ...inputStyle(theme), height: '500px', fontFamily: "'Crimson Pro', serif", fontSize: '1.25rem', lineHeight: '1.7', resize: 'vertical', padding: '20px' }}
               value={content}

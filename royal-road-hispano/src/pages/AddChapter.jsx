@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API_BASE, authHeader } from '../App';
+import FormatToolbar from '../components/FormatToolbar';
 
 const AddChapter = ({ user, darkMode }) => {
   const { id } = useParams();
@@ -12,6 +13,7 @@ const AddChapter = ({ user, darkMode }) => {
   const [notePosition, setNotePosition] = useState('top');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingChapters, setExistingChapters] = useState([]);
+  const contentRef = useRef(null);   // para la barra de formato
 
   const theme = {
     bg: darkMode ? '#0a0b10' : '#f4f0ea',
@@ -128,7 +130,14 @@ const AddChapter = ({ user, darkMode }) => {
               onChange={(e) => setTitle(e.target.value)}
               required
             />
+            <FormatToolbar
+              textareaRef={contentRef}
+              value={content}
+              onChange={setContent}
+              theme={theme}
+            />
             <textarea
+              ref={contentRef}
               className="addchapter-textarea"
               style={inputStyle(theme, false)}
               placeholder="Comienza a escribir tu historia aquí..."

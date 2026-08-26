@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { API_BASE, authHeader } from '../App';
+import FormattedText from '../components/FormattedText';
 
 const BookReader = ({ user, darkMode, setDarkMode }) => {
   const { id, chapterIndex } = useParams();
@@ -196,9 +197,13 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
         )}
 
         <div className="reader-article" style={readerTextStyle}>
-          {paragraphs.slice(0, midPointPara).map((para, i) => <p key={`p1-${i}`} style={paragraphStyle}>{para}</p>)}
+          {paragraphs.slice(0, midPointPara).map((para, i) => (
+            <FormattedText key={`p1-${i}`} text={para} paragraphStyle={paragraphStyle} />
+          ))}
           <div ref={triggerRef} style={{ height: '40px', margin: '20px 0', opacity: 0.1, textAlign: 'center' }}>✦</div>
-          {paragraphs.slice(midPointPara).map((para, i) => <p key={`p2-${i}`} style={paragraphStyle}>{para}</p>)}
+          {paragraphs.slice(midPointPara).map((para, i) => (
+            <FormattedText key={`p2-${i}`} text={para} paragraphStyle={paragraphStyle} />
+          ))}
         </div>
 
         {/* Nota del autor ABAJO (si corresponde) */}
