@@ -42,7 +42,8 @@ def init_db():
         is_adult     INTEGER DEFAULT 0,
         is_hidden    INTEGER DEFAULT 0,
         book_note    TEXT,
-        free_tags    TEXT
+        free_tags    TEXT,
+        last_featured DATETIME
     )''')
 
     # ── 3. CAPÍTULOS ───────────────────────────────────────────────────────────

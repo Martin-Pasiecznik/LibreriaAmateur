@@ -28,3 +28,9 @@ Aplicar en producción cada vez que se agregue una columna.
 sqlite3 database.db "ALTER TABLE books ADD COLUMN free_tags TEXT;"
 sqlite3 database.db "PRAGMA wal_checkpoint(TRUNCATE);"
 sqlite3 database.db "SELECT free_tags FROM books LIMIT 1;"
+
+2026-08-27
+cd ~/LibreriaAmateur/server
+sqlite3 database.db "ALTER TABLE books ADD COLUMN last_featured DATETIME;"
+sqlite3 database.db "PRAGMA wal_checkpoint(TRUNCATE);"
+sqlite3 database.db "SELECT last_featured FROM books LIMIT 1;"

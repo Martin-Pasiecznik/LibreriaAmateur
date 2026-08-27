@@ -191,6 +191,13 @@ def clean_free_tags(raw):
 COVER_FULL_SIZE  = (600, 900)
 COVER_THUMB_SIZE = (200, 300)
 
+# ── DESTACADOS ────────────────────────────────────────────────────────────
+# Cada cuánto rota la selección de la home, y cuántos libros muestra.
+# Con poco tráfico conviene un intervalo largo: si un libro aparece solo
+# 10 minutos, casi nadie lo ve. Con más visitas se puede bajar.
+FEATURED_ROTATION_SECONDS = 3600   # 1 hora
+FEATURED_COUNT = 5
+
 
 def thumb_name(filename):
     """cover_123.jpg → cover_123_thumb.jpg"""
@@ -263,7 +270,8 @@ def init_db_internal():
         is_adult INTEGER DEFAULT 0,
         is_hidden INTEGER DEFAULT 0,
         book_note TEXT,
-        free_tags TEXT)''')
+        free_tags TEXT,
+        last_featured DATETIME)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS chapters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -876,18 +884,43 @@ def get_featured_ids():
     else:
         try:
             last_update = datetime.datetime.strptime(row['last_update'], '%Y-%m-%d %H:%M:%S.%f')
-            if (now - last_update).total_seconds() > 3600:  # 1 hora
+            if (now - last_update).total_seconds() > FEATURED_ROTATION_SECONDS:
                 should_update = True
         except ValueError:
             should_update = True
 
     if should_update:
-        random_books = conn.execute('SELECT id FROM books WHERE is_hidden = 0 ORDER BY RANDOM() LIMIT 5').fetchall()
-        new_ids = [r['id'] for r in random_books]
+        # ROTACIÓN JUSTA: en vez de sortear al azar (donde un libro puede
+        # salir dos veces seguidas y otro no salir en días), elegimos los
+        # que hace MÁS TIEMPO que no aparecen. Los que nunca aparecieron
+        # (last_featured NULL) van primero.
+        #
+        # El desempate es aleatorio, así que entre libros que están en la
+        # misma situación (por ejemplo, todos los nuevos) no siempre sale
+        # el mismo orden.
+        elegidos = conn.execute('''
+            SELECT id FROM books
+            WHERE is_hidden = 0
+            ORDER BY
+                CASE WHEN last_featured IS NULL THEN 0 ELSE 1 END,
+                last_featured ASC,
+                RANDOM()
+            LIMIT ?
+        ''', (FEATURED_COUNT,)).fetchall()
+        new_ids = [r['id'] for r in elegidos]
+
         if new_ids:
+            # Marcar que estos libros aparecieron ahora, para que pasen
+            # al final de la cola en la próxima rotación.
+            marca = now.strftime('%Y-%m-%d %H:%M:%S.%f')
+            placeholders = ','.join(['?'] * len(new_ids))
+            conn.execute(
+                f'UPDATE books SET last_featured = ? WHERE id IN ({placeholders})',
+                [marca] + new_ids
+            )
             conn.execute(
                 'INSERT OR REPLACE INTO featured_rotation (id, last_update, book_ids) VALUES (1, ?, ?)',
-                (now.strftime('%Y-%m-%d %H:%M:%S.%f'), json.dumps(new_ids))
+                (marca, json.dumps(new_ids))
             )
             conn.commit()
         conn.close()
