@@ -492,8 +492,9 @@ const AuthorBookDetails = ({ user, darkMode }) => {
                   onChange={e => setNewCover(e.target.files[0])}
                   style={{ fontSize: '0.8rem', color: theme.textMuted, cursor: 'pointer' }}
                 />
-                <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: '6px' }}>
-                  Dejá vacío para mantener la portada actual
+                <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: '10px', lineHeight: 1.6 }}>
+                  Dejá vacío para mantener la portada actual.<br />
+                  <strong style={{ color: theme.accent }}>Tamaño recomendado: 600 × 900 px</strong> (proporción 2:3) · JPG o PNG · máx. 2 MB.
                 </p>
               </div>
 

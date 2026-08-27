@@ -348,6 +348,11 @@ const PublishBook = ({ user, darkMode, refreshBooks }) => {
               />
             </div>
             <input type="file" accept="image/*" onChange={handleFileChange} style={{ fontSize: '0.8rem', color: theme.textMuted, cursor: 'pointer' }} />
+            <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: '12px', lineHeight: 1.6, maxWidth: '420px', marginLeft: 'auto', marginRight: 'auto' }}>
+              <strong style={{ color: theme.accent }}>Tamaño recomendado: 600 × 900 px</strong> (proporción 2:3, como una portada de libro).<br />
+              Formatos JPG o PNG · Peso máximo 2 MB.<br />
+              Las imágenes cuadradas o apaisadas se mostrarán con bordes.
+            </p>
           </div>
 
           <button type="submit" disabled={submitting} style={{ ...submitBtnStyle(theme), opacity: submitting ? 0.6 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}>
