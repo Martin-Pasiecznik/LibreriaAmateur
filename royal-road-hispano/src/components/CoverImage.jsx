@@ -16,8 +16,11 @@ import { API_BASE } from '../App';
  *  - darkMode: bool
  *  - style: estilos extra para el contenedor (border-radius, etc.)
  *  - titleSize: tamaño de fuente del título en el fallback (opcional)
+ *  - thumb: si es true, pide la miniatura (200x300) en vez de la
+ *           versión completa. Usalo en tarjetas y listados: se ve
+ *           más nítido y la página carga mucho más rápido.
  */
-const CoverImage = ({ authorNote, title, theme, darkMode, style = {}, titleSize = '0.95rem' }) => {
+const CoverImage = ({ authorNote, title, theme, darkMode, style = {}, titleSize = '0.95rem', thumb = false }) => {
   // ¿Hay una portada válida? (author_note no vacío ni el string "null")
   const hasCover = authorNote && authorNote !== 'null';
   // Si la imagen falla al cargar, cambiamos a modo fallback
@@ -70,13 +73,25 @@ const CoverImage = ({ authorNote, title, theme, darkMode, style = {}, titleSize 
   }
 
   // Imagen normal
+  // Si thumb=true, pide la versión chica (cover_123_thumb.jpg).
+  // El backend sirve la grande como respaldo si la miniatura no existe.
+  const archivo = thumb
+    ? authorNote.replace(/(\.[^.]+)$/, '_thumb$1')
+    : authorNote;
+
   return (
-    <div style={containerStyle}>
+    <div style={{
+      ...containerStyle,
+      // Fondo suave para las franjas que puedan quedar (la imagen se
+      // muestra completa, sin recortar, así que puede no llenar el
+      // contenedor si su proporción difiere).
+      background: darkMode ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.05)',
+    }}>
       <img
-        src={`${API_BASE}/static/covers/${authorNote}`}
+        src={`${API_BASE}/static/covers/${archivo}`}
         alt={title}
         className="cover-img"
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.5s ease' }}
+        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', transition: 'transform 0.5s ease' }}
         onError={() => setImgFailed(true)}
       />
     </div>

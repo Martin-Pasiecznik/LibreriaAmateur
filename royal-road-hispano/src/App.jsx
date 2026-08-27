@@ -692,14 +692,15 @@ function App() {
                         Destacados
                       </h2>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "20px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "20px", alignItems: "stretch" }}>
                       {featuredBooks.map((book) => (
-                        <Link key={`feat-${book.id}`} to={`/book/${book.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                        <Link key={`feat-${book.id}`} to={`/book/${book.id}`} style={{ textDecoration: "none", color: "inherit", display: "flex" }}>
                           <div className="book-card-featured" style={{
                             backgroundColor: theme.card, padding: "15px",
                             borderRadius: "12px", border: `1px solid ${theme.border}`,
+                            width: "100%", display: "flex", flexDirection: "column",
                           }}>
-                            <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: "8px", overflow: "hidden" }}>
+                            <div style={{ width: "100%", aspectRatio: "2/3", borderRadius: "8px", overflow: "hidden", flexShrink: 0 }}>
                               <CoverImage
                                 authorNote={book.author_note}
                                 title={book.title}
@@ -709,7 +710,15 @@ function App() {
                                 thumb
                               />
                             </div>
-                            <h3 style={{ margin: "15px 0 0 0", fontSize: "0.9rem", fontWeight: 700, textAlign: "center", overflowWrap: "break-word", wordBreak: "break-word" }}>
+                            {/* Altura fija para el título: dos líneas siempre,
+                                así todas las tarjetas miden lo mismo aunque
+                                el título sea corto o largo. */}
+                            <h3 style={{
+                              margin: "15px 0 0 0", fontSize: "0.9rem", fontWeight: 700,
+                              textAlign: "center", overflowWrap: "break-word", wordBreak: "break-word",
+                              lineHeight: 1.3, height: "2.6em", overflow: "hidden",
+                              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                            }}>
                               {book.title}
                             </h3>
                           </div>
