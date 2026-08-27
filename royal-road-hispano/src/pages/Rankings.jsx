@@ -297,6 +297,7 @@ const Rankings = ({ darkMode }) => {
                   theme={theme}
                   darkMode={darkMode}
                   titleSize="0.6rem"
+                  thumb
                 />
               </div>
 

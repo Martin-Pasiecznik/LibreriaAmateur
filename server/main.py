@@ -179,6 +179,56 @@ def clean_free_tags(raw):
         return '', f'Máximo {MAX_FREE_TAGS} etiquetas libres permitidas.'
     cleaned.sort(key=lambda s: s.lower())
     return ', '.join(cleaned), None
+
+
+# ── PORTADAS: tamaño completo + miniatura ─────────────────────────────────
+# Se guardan DOS versiones de cada portada:
+#   cover_123.jpg        → 600x900, para la ficha del libro
+#   cover_123_thumb.jpg  → 200x300, para las tarjetas de listados
+# Así el navegador no tiene que achicar una imagen grande a 90px
+# (eso se ve pixelado) y además las listas cargan mucho más rápido.
+
+COVER_FULL_SIZE  = (600, 900)
+COVER_THUMB_SIZE = (200, 300)
+
+
+def thumb_name(filename):
+    """cover_123.jpg → cover_123_thumb.jpg"""
+    if not filename:
+        return None
+    base, ext = os.path.splitext(filename)
+    return f"{base}_thumb{ext}"
+
+
+def save_cover(file, filename):
+    """
+    Procesa y guarda una portada en sus dos tamaños.
+    Devuelve True si salió bien, False si falló.
+    """
+    try:
+        img = Image.open(file)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+
+        # Versión grande (para la ficha del libro)
+        full = img.copy()
+        full.thumbnail(COVER_FULL_SIZE)
+        full.save(
+            os.path.join(app.config['UPLOAD_FOLDER'], filename),
+            "JPEG", quality=82, optimize=True
+        )
+
+        # Miniatura (para las tarjetas de los listados)
+        thumb = img.copy()
+        thumb.thumbnail(COVER_THUMB_SIZE)
+        thumb.save(
+            os.path.join(app.config['UPLOAD_FOLDER'], thumb_name(filename)),
+            "JPEG", quality=80, optimize=True
+        )
+        return True
+    except Exception as e:
+        print(f"[Cover] Error procesando imagen: {e}")
+        return False
 MAX_TAGS_CHARS    = 500
 MAX_NICKNAME_CHARS = 100
 
@@ -899,19 +949,8 @@ def handle_books():
         filename = None
         file = request.files.get('cover')
         if file and file.filename != '':
-            try:
-                img = Image.open(file)
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-                img.thumbnail((600, 900))
-                filename = secure_filename(f"cover_{int(time.time())}.jpg")
-                img.save(
-                    os.path.join(app.config['UPLOAD_FOLDER'], filename),
-                    "JPEG", quality=82, optimize=True
-                )
-            except Exception as e:
-                print(f"[Cover] Error procesando imagen: {e}")
-                filename = None
+            candidato = secure_filename(f"cover_{int(time.time())}.jpg")
+            filename = candidato if save_cover(file, candidato) else None
 
         # #+18 — leer el flag de contenido adulto del form (checkbox)
         is_adult = 1 if request.form.get('is_adult') in ('1', 'true', 'True', 'on') else 0
@@ -1103,22 +1142,14 @@ def update_book_details(book_id):
 
     conn = get_db_connection()
     if file and file.filename != '':
-        try:
-            img = Image.open(file)
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")
-            img.thumbnail((600, 900))
-            filename = secure_filename(f"cover_{book_id}_{int(time.time())}.jpg")
-            img.save(
-                os.path.join(app.config['UPLOAD_FOLDER'], filename),
-                "JPEG", quality=82, optimize=True
-            )
+        candidato = secure_filename(f"cover_{book_id}_{int(time.time())}.jpg")
+        if save_cover(file, candidato):
             conn.execute(
                 'UPDATE books SET title = ?, description = ?, tags = ?, author_note = ?, is_adult = ?, book_note = ?, free_tags = ? WHERE id = ?',
-                (title, description, tags, filename, is_adult, book_note, free_tags, book_id)
+                (title, description, tags, candidato, is_adult, book_note, free_tags, book_id)
             )
-        except Exception as e:
-            print(f"[Cover] Error procesando imagen: {e}")
+        else:
+            # Falló el procesamiento: se guardan los demás campos, no la portada
             conn.execute(
                 'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ?, free_tags = ? WHERE id = ?',
                 (title, description, tags, is_adult, book_note, free_tags, book_id)
@@ -1853,6 +1884,13 @@ def register_view(book_id):
 
 @app.route('/static/covers/<path:filename>')
 def serve_covers(filename):
+    # Si piden una miniatura que no existe (libros subidos antes de que
+    # existieran los thumbs), se sirve la versión grande como respaldo.
+    ruta = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(ruta) and '_thumb' in filename:
+        original = filename.replace('_thumb', '')
+        if os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], original)):
+            return send_from_directory(app.config['UPLOAD_FOLDER'], original)
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 

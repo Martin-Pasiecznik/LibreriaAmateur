@@ -706,6 +706,7 @@ function App() {
                                 theme={theme}
                                 darkMode={darkMode}
                                 titleSize="0.85rem"
+                                thumb
                               />
                             </div>
                             <h3 style={{ margin: "15px 0 0 0", fontSize: "0.9rem", fontWeight: 700, textAlign: "center", overflowWrap: "break-word", wordBreak: "break-word" }}>
@@ -739,6 +740,7 @@ function App() {
                                 theme={theme}
                                 darkMode={darkMode}
                                 titleSize="0.7rem"
+                                thumb
                               />
                             </div>
                             <div style={{ overflow: "hidden" }}>
