@@ -48,6 +48,7 @@ export const authHeader = (user) => ({
 const OnboardingModal = ({ user, onSave, darkMode, theme }) => {
   const [nickname, setNickname] = useState(user.name || "");
   const [selectedPhoto, setSelectedPhoto] = useState(user.picture);
+  const [showCredits, setShowCredits] = useState(false);
 
   const localAvatars = [
     "1.png", "2.png", "3.png", "4.png",
@@ -159,6 +160,53 @@ const OnboardingModal = ({ user, onSave, darkMode, theme }) => {
               />
             );
           })}
+        </div>
+
+        {/* Créditos de los avatares (licencia Flaticon) */}
+        <div style={{ textAlign: "left", marginBottom: "20px", marginTop: "-15px" }}>
+          <button
+            type="button"
+            onClick={() => setShowCredits(v => !v)}
+            style={{
+              background: "none", border: "none", padding: 0, cursor: "pointer",
+              color: theme.textMuted, fontSize: "0.68rem", opacity: 0.7,
+              textDecoration: "underline",
+            }}
+          >
+            Créditos de los avatares {showCredits ? "▴" : "▾"}
+          </button>
+          {showCredits && (
+            <div style={{
+              marginTop: "8px", padding: "10px 12px", borderRadius: "8px",
+              backgroundColor: darkMode ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.04)",
+              fontSize: "0.65rem", lineHeight: 1.8, color: theme.textMuted,
+            }}>
+              Avatares creados por <strong>Magnific</strong> — Flaticon:
+              <div style={{ marginTop: "4px" }}>
+                {[
+                  ["animales", "Animales"],
+                  ["mono", "Mono"],
+                  ["animal", "Animal"],
+                  ["oceano", "Océano"],
+                  ["delfin", "Delfín"],
+                  ["tucan", "Tucán"],
+                  ["pollo", "Pollo"],
+                ].map(([slug, label], i, arr) => (
+                  <span key={slug}>
+                    <a
+                      href={`https://www.flaticon.es/iconos-gratis/${slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: theme.accent, textDecoration: "none" }}
+                    >
+                      {label}
+                    </a>
+                    {i < arr.length - 1 ? " · " : ""}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ textAlign: "left", marginBottom: "25px" }}>
