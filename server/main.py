@@ -14,11 +14,15 @@ import io
 
 # #12 — Cargar variables de entorno desde el archivo .env (si existe).
 # Requiere: pip install python-dotenv
-# En producción, las variables las provee el servidor y este load_dotenv
-# simplemente no encuentra archivo y no hace nada (no falla).
+#
+# IMPORTANTE: se usa la ruta ABSOLUTA del .env (calculada desde este
+# archivo). Si se llamara load_dotenv() sin argumentos, buscaría el .env
+# en el directorio de trabajo actual — y bajo WSGI ese directorio NO es
+# la carpeta server/, así que el .env nunca se cargaba en producción.
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    load_dotenv(_env_path)
 except ImportError:
     pass  # Si no está instalado, se usan los defaults del código
 
