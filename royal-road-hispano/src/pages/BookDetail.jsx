@@ -127,7 +127,18 @@ const BookDetail = ({ user, darkMode }) => {
   const isAuthorStatus = !!(book?.book_status && BOOK_STATUS_DISPLAY[book.book_status]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/books/${id}`).then(r => r.json()).then(setBook);
+    fetch(`${API_BASE}/api/books/${id}`)
+      .then(r => r.json())
+      .then(d => {
+        setBook(d);
+        // El promedio y la cantidad de votos vienen con el libro y son
+        // públicos: se muestran haya sesión o no.
+        setRating(prev => ({
+          ...prev,
+          average: d.avg_rating || 0,
+          total: d.vote_count || 0,
+        }));
+      });
     fetch(`${API_BASE}/api/books/${id}/chapters`).then(r => r.json()).then(d => setChapters(Array.isArray(d) ? d : []));
     // Estadísticas de clasificación — públicas, no requieren sesión
     fetch(`${API_BASE}/api/books/${id}/library-stats`)
@@ -137,14 +148,24 @@ const BookDetail = ({ user, darkMode }) => {
     fetchComments();
 
     if (user?.session_token) {
+      // Solo la calificación PROPIA del usuario necesita sesión
       fetch(`${API_BASE}/api/books/${id}/rating-status/${user.email}`)
         .then(r => r.json())
-        .then(d => setRating({ average: d.average, total: d.total_votes, userScore: d.user_score }));
+        .then(d => setRating(prev => ({
+          average: d.average ?? prev.average,
+          total: d.total_votes ?? prev.total,
+          userScore: d.user_score || 0,
+        })))
+        .catch(() => {});
 
       fetch(`${API_BASE}/api/library`, { headers: authHeader(user) })
         .then(r => { if (!r.ok) throw new Error(); return r.json(); })
         .then(d => {
-          const found = Array.isArray(d) && d.find(b => b.id === parseInt(id));
+          // El id de la URL puede ser un slug, así que se compara
+          // contra el id o el slug del libro.
+          const found = Array.isArray(d) && d.find(
+            b => String(b.id) === String(id) || b.slug === id
+          );
           if (found) setLibraryStatus(found.status);
         }).catch(() => {});
 

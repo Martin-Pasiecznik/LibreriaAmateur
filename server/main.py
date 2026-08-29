@@ -1452,10 +1452,10 @@ VALID_REPORT_CATEGORIES = {
     'illegal', 'wrong_info', 'other'
 }
 
-@app.route('/api/books/<int:book_id>/report', methods=['POST'])
+@app.route('/api/books/<book_ref>/report', methods=['POST'])
 @require_auth
 @limiter.limit("10 per minute")
-def report_book(book_id):
+def report_book(book_ref):
     """Un usuario logueado reporta un libro. Uno por usuario por libro."""
     data = request.get_json() or {}
     category = (data.get('category') or '').strip()
@@ -1469,8 +1469,9 @@ def report_book(book_id):
         return jsonify({"error": err}), 400
 
     conn = get_db_connection()
-    # Verificar que el libro existe
-    book = conn.execute('SELECT id FROM books WHERE id = ?', (book_id,)).fetchone()
+    # Resolver slug o id, y verificar que el libro existe
+    book_id = resolver_book_id(conn, book_ref)
+    book = conn.execute('SELECT id FROM books WHERE id = ?', (book_id,)).fetchone() if book_id else None
     if not book:
         conn.close()
         return jsonify({"error": "Libro no encontrado."}), 404
@@ -1489,11 +1490,15 @@ def report_book(book_id):
     return jsonify({"status": "ok"}), 201
 
 
-@app.route('/api/books/<int:book_id>/report', methods=['DELETE'])
+@app.route('/api/books/<book_ref>/report', methods=['DELETE'])
 @require_auth
-def delete_my_report(book_id):
+def delete_my_report(book_ref):
     """Un usuario retira su propio reporte de un libro (arrepentimiento)."""
     conn = get_db_connection()
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify({"status": "ok"}), 200
     conn.execute(
         'DELETE FROM reports WHERE book_id = ? AND user_email = ?',
         (book_id, g.current_user_email)
@@ -1503,11 +1508,15 @@ def delete_my_report(book_id):
     return jsonify({"status": "ok"}), 200
 
 
-@app.route('/api/books/<int:book_id>/report/mine', methods=['GET'])
+@app.route('/api/books/<book_ref>/report/mine', methods=['GET'])
 @require_auth
-def get_my_report(book_id):
+def get_my_report(book_ref):
     """Devuelve si el usuario actual ya reportó este libro (para el frontend)."""
     conn = get_db_connection()
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify({"reported": False}), 200
     row = conn.execute(
         'SELECT category, comment FROM reports WHERE book_id = ? AND user_email = ?',
         (book_id, g.current_user_email)
@@ -1518,10 +1527,14 @@ def get_my_report(book_id):
     return jsonify({"reported": False}), 200
 
 
-@app.route('/api/books/<int:book_id>/comments', methods=['GET', 'POST'])
+@app.route('/api/books/<book_ref>/comments', methods=['GET', 'POST'])
 @limiter.limit("20 per minute")  # #4 — evita spam de comentarios
-def handle_comments(book_id):
+def handle_comments(book_ref):
     conn = get_db_connection()
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify([]) if request.method == 'GET' else (jsonify({"error": "Libro no encontrado"}), 404)
     chapter_id = request.args.get('chapter_id')
 
     if request.method == 'POST':
@@ -1581,9 +1594,9 @@ def handle_comments(book_id):
     return jsonify([dict(c) for c in comments])
 
 
-@app.route('/api/books/<int:book_id>/rate', methods=['POST'])
+@app.route('/api/books/<book_ref>/rate', methods=['POST'])
 @require_auth
-def rate_book(book_id):
+def rate_book(book_ref):
     data = request.get_json()
     score = data.get('score')
     if not score:
@@ -1592,6 +1605,10 @@ def rate_book(book_id):
     email = g.current_user_email  # Siempre del token verificado, nunca del body
 
     conn = get_db_connection()
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify({"error": "Libro no encontrado"}), 404
     # #2 — ON CONFLICT DO UPDATE en vez de INSERT OR REPLACE.
     # REPLACE borraba la fila entera (perdiendo el timestamp original);
     # esto solo actualiza el score y conserva cuándo se calificó por primera vez.
@@ -1609,9 +1626,13 @@ def rate_book(book_id):
     return jsonify({"status": "rated", "average": stats['avg'] or 0, "total_votes": stats['count']}), 200
 
 
-@app.route('/api/books/<int:book_id>/rating-status/<string:email>', methods=['GET'])
-def get_rating_status(book_id, email):
+@app.route('/api/books/<book_ref>/rating-status/<string:email>', methods=['GET'])
+def get_rating_status(book_ref, email):
     conn = get_db_connection()
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify({"user_score": 0, "average": 0, "total_votes": 0})
     user_rate = conn.execute(
         'SELECT score FROM ratings WHERE book_id = ? AND user_email = ?',
         (book_id, email)
@@ -1678,14 +1699,18 @@ def update_library():
     return jsonify({"status": "updated"}), 200
 
 
-@app.route('/api/progress/<string:email>/<int:book_id>', methods=['GET'])
+@app.route('/api/progress/<string:email>/<book_ref>', methods=['GET'])
 @require_auth
-def get_progress(email, book_id):
+def get_progress(email, book_ref):
     # El usuario solo puede consultar su propio progreso
     if email != g.current_user_email:
         return jsonify({"error": "No autorizado"}), 403
 
     conn = get_db_connection()
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify(None), 200
 
     # last_chapter_id sigue en user_library
     row = conn.execute('''
@@ -1944,10 +1969,14 @@ def advanced_search():
     return jsonify([dict(r) for r in results])
 
 
-@app.route('/api/books/<int:book_id>/library-stats', methods=['GET'])
-def get_library_stats(book_id):
+@app.route('/api/books/<book_ref>/library-stats', methods=['GET'])
+def get_library_stats(book_ref):
     try:
         conn = get_db_connection()
+        book_id = resolver_book_id(conn, book_ref)
+        if not book_id:
+            conn.close()
+            return jsonify({"reading": 0, "pending": 0, "completed": 0, "dropped": 0, "total": 0}), 200
         stats = conn.execute(
             'SELECT status, COUNT(*) as count FROM user_library WHERE book_id = ? GROUP BY status',
             (book_id,)
@@ -1971,13 +2000,17 @@ def get_library_stats(book_id):
 # VISTAS (sin autenticación — se trackea por IP)
 # =============================================================================
 
-@app.route('/api/books/<int:book_id>/view', methods=['POST'])
+@app.route('/api/books/<book_ref>/view', methods=['POST'])
 @limiter.limit("60 per minute")  # #4 — evita inflar vistas artificialmente
-def register_view(book_id):
+def register_view(book_ref):
     data = request.get_json() or {}
     chapter_index = data.get('chapter_index', 0)
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     conn = get_db_connection()
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify({"status": "ignored"}), 200
     try:
         conn.execute(
             'INSERT INTO view_logs (book_id, chapter_index, ip_address) VALUES (?, ?, ?)',
