@@ -234,7 +234,7 @@ const BookDetail = ({ user, darkMode }) => {
   const updateLibrary = (status) => {
     if (!user?.session_token) return setErrorMsg("Debes iniciar sesión para guardar en tu biblioteca.");
     setIsUpdatingLib(true);
-    fetch(`${API_BASE}/api/library/update`, { method: 'POST', headers: authHeader(user), body: JSON.stringify({ book_id: parseInt(id), status }) })
+    fetch(`${API_BASE}/api/library/update`, { method: 'POST', headers: authHeader(user), body: JSON.stringify({ book_id: id, status }) })
       .then(r => r.json())
       .then(() => {
         setLibraryStatus(status === 'remove' ? null : status);

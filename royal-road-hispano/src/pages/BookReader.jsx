@@ -51,7 +51,7 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
       method: 'POST',
       headers: authHeader(user),
       body: JSON.stringify({
-        book_id: parseInt(id),
+        book_id: id,
         chapter_id: chapterId,
         // email eliminado: el backend lo toma del token
       }),
