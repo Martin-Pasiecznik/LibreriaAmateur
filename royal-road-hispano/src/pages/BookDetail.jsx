@@ -228,7 +228,15 @@ const BookDetail = ({ user, darkMode }) => {
     if (!user?.session_token) return setErrorMsg("Debes iniciar sesión para puntuar.");
     fetch(`${API_BASE}/api/books/${id}/rate`, { method: 'POST', headers: authHeader(user), body: JSON.stringify({ score }) })
       .then(r => r.json())
-      .then(d => { setRating(p => ({ ...p, average: d.average, total: d.total_votes, userScore: score })); setErrorMsg(""); fetchComments(); });
+      .then(d => {
+        setRating(p => ({ ...p, average: d.average, total: d.total_votes, userScore: score }));
+        setErrorMsg("");
+        fetchComments();
+        // Aviso visible: la puntuación se guarda sola, sin botón de enviar
+        setNotif(`Puntuación guardada: ${score} ${score === 1 ? 'estrella' : 'estrellas'}`);
+        setTimeout(() => setNotif(""), 3000);
+      })
+      .catch(() => setErrorMsg("No se pudo guardar la puntuación."));
   };
 
   const updateLibrary = (status) => {
@@ -247,7 +255,7 @@ const BookDetail = ({ user, darkMode }) => {
 
   const postComment = () => {
     if (!user?.session_token) return setErrorMsg("Debes iniciar sesión para dejar una reseña.");
-    if (rating.userScore === 0) return setErrorMsg("Primero debes puntuar la obra con estrellas (arriba).");
+    if (rating.userScore === 0) return setErrorMsg("Primero debes puntuar la obra con estrellas.");
     if (!readingStatus)         return setErrorMsg("Por favor, selecciona tu progreso de lectura.");
     if (!newComment.trim())     return setErrorMsg("El texto de la reseña es obligatorio.");
     const fullText = `[Estado: ${readingStatus}] ${newComment}`;
