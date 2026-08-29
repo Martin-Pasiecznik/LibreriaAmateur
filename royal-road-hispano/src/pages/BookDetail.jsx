@@ -542,7 +542,7 @@ const BookDetail = ({ user, darkMode }) => {
             const isLast   = progress.lastChapterIndex === ch.id;
             const isNewest = lastChapter?.id === ch.id && chapters.length > 1;
             return (
-              <Link key={ch.id} to={`/reader/${book.id}/${index}`}
+              <Link key={ch.id} to={`/reader/${book.slug || book.id}/${index}`}
                 style={{ padding: '20px', background: isRead ? theme.readColor : theme.card, border: isLast ? `1px solid ${theme.accent}` : `1px solid ${theme.border}`, borderRadius: '12px', textDecoration: 'none', color: isRead ? theme.readText : theme.textMain, display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: '0.3s' }}
                 onMouseOver={e => { e.currentTarget.style.borderColor = theme.accent; e.currentTarget.style.transform = 'translateY(-2px)'; }}
                 onMouseOut={e => { e.currentTarget.style.borderColor = isLast ? theme.accent : theme.border; e.currentTarget.style.transform = 'translateY(0)'; }}

@@ -258,7 +258,7 @@ const Rankings = ({ darkMode }) => {
       {/* LISTA DE RANKING */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {topBooks.map((book, index) => (
-          <Link key={book.id} to={`/book/${book.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+          <Link key={book.id} to={`/book/${book.slug || book.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="rank-row" style={{
               display: 'flex', alignItems: 'center', padding: '20px 25px', 
               background: theme.card, borderRadius: '20px', 

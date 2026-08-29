@@ -349,7 +349,7 @@ const AdvancedSearch = ({ darkMode }) => {
 
         <div className="search-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '30px' }}>
           {results.map(book => (
-            <Link to={`/book/${book.id}`} key={book.id} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link to={`/book/${book.slug || book.id}`} key={book.id} style={{ textDecoration: 'none', color: 'inherit' }}>
               <div style={{ 
                 backgroundColor: theme.card, borderRadius: '16px', overflow: 'hidden', 
                 border: `1px solid ${theme.border}`, transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',

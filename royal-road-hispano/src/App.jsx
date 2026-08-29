@@ -742,7 +742,7 @@ function App() {
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "20px", alignItems: "stretch" }}>
                       {featuredBooks.map((book) => (
-                        <Link key={`feat-${book.id}`} to={`/book/${book.id}`} style={{ textDecoration: "none", color: "inherit", display: "flex" }}>
+                        <Link key={`feat-${book.id}`} to={`/book/${book.slug || book.id}`} style={{ textDecoration: "none", color: "inherit", display: "flex" }}>
                           <div className="book-card-featured" style={{
                             backgroundColor: theme.card, padding: "15px",
                             borderRadius: "12px", border: `1px solid ${theme.border}`,
@@ -785,7 +785,7 @@ function App() {
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
                       {recentlyUpdated.map((book) => (
-                        <Link key={`recent-${book.id}`} to={`/book/${book.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                        <Link key={`recent-${book.id}`} to={`/book/${book.slug || book.id}`} style={{ textDecoration: "none", color: "inherit" }}>
                           <div className="recent-item" style={{
                             display: "flex", gap: "18px", padding: "16px", borderRadius: "16px",
                             alignItems: "center", backgroundColor: theme.card, border: `1px solid ${theme.border}`,

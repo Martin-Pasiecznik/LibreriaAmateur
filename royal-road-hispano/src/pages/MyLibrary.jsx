@@ -87,7 +87,7 @@ const MyLibrary = ({ user, darkMode }) => {
         {filteredBooks.map(book => (
           <div
             key={book.id}
-            onClick={() => navigate(`/book/${book.id}`)}
+            onClick={() => navigate(`/book/${book.slug || book.id}`)}
             style={{ cursor: 'pointer', textAlign: 'left', transition: 'all 0.4s ease' }}
             className="library-card"
           >
