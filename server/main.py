@@ -2171,6 +2171,17 @@ def ratelimit_handler(e):
     }), 429
 
 
+# Cuando el archivo subido supera MAX_CONTENT_LENGTH, Flask corta el
+# pedido y devuelve HTML por defecto. Con esto el frontend recibe un
+# JSON entendible y puede mostrarle al usuario qué pasó.
+@app.errorhandler(413)
+def too_large_handler(e):
+    limite_mb = app.config['MAX_CONTENT_LENGTH'] // (1024 * 1024)
+    return jsonify({
+        "error": f"El archivo es demasiado pesado. El máximo permitido es {limite_mb} MB."
+    }), 413
+
+
 if __name__ == '__main__':
     init_db_internal()
     # #1 — debug NUNCA hardcodeado en True. Se activa solo si la variable

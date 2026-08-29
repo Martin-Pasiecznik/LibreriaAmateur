@@ -31,6 +31,26 @@ const AuthorBookDetails = ({ user, darkMode }) => {
   const [freeTagInput, setFreeTagInput] = useState('');
   const [showMoreGenres, setShowMoreGenres] = useState(false);
   const [newCover, setNewCover] = useState(null);
+
+  // Valida el peso antes de aceptar el archivo: si es muy grande el
+  // servidor rechaza el pedido entero (error 413) y se perderían
+  // también los demás cambios del formulario.
+  const MAX_COVER_MB = 2;
+  const handleCoverChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) { setNewCover(null); return; }
+    if (file.size > MAX_COVER_MB * 1024 * 1024) {
+      const peso = (file.size / (1024 * 1024)).toFixed(1);
+      alert(
+        `La imagen pesa ${peso} MB y el máximo es ${MAX_COVER_MB} MB.\n\n` +
+        `Probá con una versión más liviana o reducila a 600 × 900 px.`
+      );
+      e.target.value = '';
+      setNewCover(null);
+      return;
+    }
+    setNewCover(file);
+  };
   const [deletingBook, setDeletingBook] = useState(false);
   const [deletingChapterId, setDeletingChapterId] = useState(null);
 
@@ -119,7 +139,17 @@ const AuthorBookDetails = ({ user, darkMode }) => {
     });
 
     if (res.ok) { setShowEditModal(false); loadData(); }
-    else { alert('No se pudieron guardar los cambios.'); }
+    else if (res.status === 413) {
+      alert(
+        `La imagen es demasiado pesada para el servidor (máximo ${MAX_COVER_MB} MB).\n\n` +
+        `Los demás cambios tampoco se guardaron. Probá con una imagen más liviana.`
+      );
+    }
+    else {
+      // Intentar leer el mensaje del backend; si no hay, uno genérico
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'No se pudieron guardar los cambios.');
+    }
   };
 
   // ─── CAMBIAR ESTADO DE LA OBRA ────────────────────────────────────────────
@@ -489,7 +519,7 @@ const AuthorBookDetails = ({ user, darkMode }) => {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={e => setNewCover(e.target.files[0])}
+                  onChange={handleCoverChange}
                   style={{ fontSize: '0.8rem', color: theme.textMuted, cursor: 'pointer' }}
                 />
                 <p style={{ fontSize: '0.72rem', color: theme.textMuted, marginTop: '10px', lineHeight: 1.6 }}>
