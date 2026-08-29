@@ -1337,10 +1337,17 @@ def get_chapters(book_ref):
 @require_auth
 def add_chapter():
     data = request.get_json()
-    book_id = data.get('book_id')
+    book_ref = data.get('book_id')
 
-    if not book_id:
+    if not book_ref:
         return jsonify({"error": "book_id requerido"}), 400
+
+    # Acepta slug o id numérico
+    _c = get_db_connection()
+    book_id = resolver_book_id(_c, book_ref)
+    _c.close()
+    if not book_id:
+        return jsonify({"error": "Libro no encontrado"}), 404
 
     # Verificar que el libro le pertenece al usuario autenticado
     book_author = get_book_author_email(book_id)
@@ -1674,13 +1681,19 @@ def get_library():
 def update_library():
     data = request.get_json()
     email = g.current_user_email  # Nunca del body
-    book_id = data.get('book_id')
+    book_ref = data.get('book_id')
     status = data.get('status')
 
-    if not book_id:
+    if not book_ref:
         return jsonify({"error": "book_id requerido"}), 400
 
     conn = get_db_connection()
+    # El frontend puede mandar el slug o el id numérico
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify({"error": "Libro no encontrado"}), 404
+
     if status == 'remove':
         conn.execute(
             'DELETE FROM user_library WHERE user_email = ? AND book_id = ?',
@@ -1739,13 +1752,18 @@ def get_progress(email, book_ref):
 def update_progress():
     data = request.get_json()
     email = g.current_user_email  # Nunca del body
-    book_id = data.get('book_id')
+    book_ref = data.get('book_id')
     chapter_id = data.get('chapter_id')
 
-    if not book_id or not chapter_id:
+    if not book_ref or not chapter_id:
         return jsonify({"error": "Datos incompletos"}), 400
 
     conn = get_db_connection()
+    # El frontend puede mandar el slug o el id numérico
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify({"error": "Libro no encontrado"}), 404
 
     # #9 — Marcar el capítulo como leído = insertar una fila en chapter_reads.
     # INSERT OR IGNORE: si ya estaba leído, no hace nada (la PK evita duplicados).
