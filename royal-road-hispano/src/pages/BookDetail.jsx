@@ -263,6 +263,21 @@ const BookDetail = ({ user, darkMode }) => {
       .then(r => { if (r.ok) { setErrorMsg(""); fetchComments(); alert(userReview ? "Reseña actualizada" : "Reseña publicada"); } });
   };
 
+  const deleteComment = (commentId) => {
+    if (!window.confirm('¿Seguro que querés eliminar tu reseña? No se puede deshacer.')) return;
+    fetch(`${API_BASE}/api/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: authHeader(user),
+    })
+      .then(r => {
+        if (!r.ok) throw new Error();
+        fetchComments();
+        setNotif('Reseña eliminada');
+        setTimeout(() => setNotif(''), 3000);
+      })
+      .catch(() => setErrorMsg('No se pudo eliminar la reseña.'));
+  };
+
   const renderStars = (count) => [...Array(5)].map((_, i) => (
     <span key={i} style={{ color: i < count ? theme.star : `${theme.textMuted}33`, fontSize: '1.1rem' }}>★</span>
   ));
@@ -686,18 +701,32 @@ const BookDetail = ({ user, darkMode }) => {
                   style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${theme.accent}`, padding: '2px', background: theme.bgLight, flexShrink: 0 }}
                   alt={c.display_name || c.user_name}
                 />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'flex-start' }}>
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '1.1rem', fontFamily: "'Crimson Pro', serif" }}>{c.display_name || c.user_name}</h4>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <h4 style={{ margin: 0, fontSize: '1.1rem', fontFamily: "'Crimson Pro', serif", overflowWrap: 'break-word', wordBreak: 'break-word' }}>{c.display_name || c.user_name}</h4>
                       {statusTag && <span style={{ fontSize: '0.65rem', color: theme.accent, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>{statusTag}</span>}
                     </div>
-                    <div style={{ textAlign: 'right' }}>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ marginBottom: '4px' }}>{renderStars(c.user_rating || 0)}</div>
                       <small style={{ color: theme.textMuted, fontSize: '0.7rem' }}>{new Date(c.timestamp).toLocaleDateString()}</small>
                     </div>
                   </div>
-                  <p style={{ margin: 0, opacity: 0.85, lineHeight: '1.6', fontSize: '0.95rem' }}>{cleanText}</p>
+                  <p style={{ margin: 0, opacity: 0.85, lineHeight: '1.6', fontSize: '0.95rem', overflowWrap: 'break-word', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{cleanText}</p>
+
+                  {/* Cada usuario puede borrar su propia reseña */}
+                  {c.user_email === user?.email && (
+                    <button
+                      onClick={() => deleteComment(c.id)}
+                      style={{
+                        marginTop: '12px', background: 'none', border: 'none', padding: 0,
+                        color: theme.textMuted, fontSize: '0.75rem', cursor: 'pointer',
+                        textDecoration: 'underline', opacity: 0.7,
+                      }}
+                    >
+                      Eliminar mi reseña
+                    </button>
+                  )}
                 </div>
               </div>
             );

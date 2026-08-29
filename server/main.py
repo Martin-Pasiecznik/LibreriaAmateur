@@ -777,9 +777,15 @@ def admin_toggle_ban():
 
     conn = get_db_connection()
     conn.execute('UPDATE users SET is_banned = ? WHERE email = ?', (banned, target_email))
-    # Si se banea, cerrar todas sus sesiones activas (lo expulsa)
     if banned:
+        # Cerrar todas sus sesiones activas (lo expulsa del sitio)
         conn.execute('DELETE FROM sessions WHERE user_email = ?', (target_email,))
+        # Y ocultar sus comentarios: si se banea a alguien, lo que escribió
+        # deja de mostrarse al público (borrado suave, reversible).
+        conn.execute('UPDATE comments SET is_hidden = 1 WHERE user_email = ?', (target_email,))
+    else:
+        # Al desbanear se vuelven a mostrar sus comentarios
+        conn.execute('UPDATE comments SET is_hidden = 0 WHERE user_email = ?', (target_email,))
     conn.commit()
     conn.close()
     return jsonify({"status": "ok", "is_banned": banned}), 200
@@ -1599,6 +1605,32 @@ def handle_comments(book_ref):
     comments = conn.execute(query + ' ORDER BY c.timestamp DESC', params).fetchall()
     conn.close()
     return jsonify([dict(c) for c in comments])
+
+
+@app.route('/api/comments/<int:comment_id>', methods=['DELETE'])
+@require_auth
+def delete_own_comment(comment_id):
+    """
+    Un usuario borra su propio comentario. Solo el autor del comentario
+    puede hacerlo (el admin usa el panel, que oculta en vez de borrar).
+    """
+    conn = get_db_connection()
+    fila = conn.execute(
+        'SELECT user_email FROM comments WHERE id = ?', (comment_id,)
+    ).fetchone()
+
+    if not fila:
+        conn.close()
+        return jsonify({"error": "Comentario no encontrado"}), 404
+
+    if fila['user_email'] != g.current_user_email:
+        conn.close()
+        return jsonify({"error": "Solo podés borrar tus propios comentarios."}), 403
+
+    conn.execute('DELETE FROM comments WHERE id = ?', (comment_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "deleted"}), 200
 
 
 @app.route('/api/books/<book_ref>/rate', methods=['POST'])

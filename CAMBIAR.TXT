@@ -1,3 +1,10 @@
+en reseñas no te toma espacios, 
+eliminar reseña
 
+reseña de usuario baneado no se borra o oculta.
 
-falta lo ultimo, falta coverImage.jsx
+agregar filtro spoiler.
+
+hacer admin a alguien no cambia nada. no les aparece la pestaña de admin. 
+
+redirigir al inicio si modifican la url. 

@@ -4,7 +4,7 @@ import React, {
   useLayoutEffect,
   useCallback,
 } from "react";
-import { Routes, Route, Link, useLocation } from "react-router-dom";
+import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { jwtDecode } from "jwt-decode";
@@ -847,6 +847,9 @@ function App() {
             <Route path="/edit-chapter/:chapterId" element={<EditChapter darkMode={darkMode} user={user} />} />
             <Route path="/search" element={<AdvancedSearch darkMode={darkMode} />} />
             <Route path="/admin" element={<AdminPanel user={user} darkMode={darkMode} />} />
+            {/* Cualquier ruta que no exista lleva al inicio.
+                Sin esto, una URL inventada mostraba una página en blanco. */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
       </div>
