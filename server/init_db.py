@@ -43,7 +43,8 @@ def init_db():
         is_hidden    INTEGER DEFAULT 0,
         book_note    TEXT,
         free_tags    TEXT,
-        last_featured DATETIME
+        last_featured DATETIME,
+        slug         TEXT UNIQUE
     )''')
 
     # ── 3. CAPÍTULOS ───────────────────────────────────────────────────────────

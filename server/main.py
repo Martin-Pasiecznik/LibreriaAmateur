@@ -2,6 +2,8 @@ from flask import Flask, jsonify, request, send_from_directory, g
 from flask_cors import CORS
 import sqlite3
 import os
+import re
+import unicodedata
 import datetime
 import json
 import secrets
@@ -185,6 +187,66 @@ def clean_free_tags(raw):
     return ', '.join(cleaned), None
 
 
+# ── SLUGS ─────────────────────────────────────────────────────────────────
+# Convierte "Ragnarök: El Corazón de los Caídos" en
+# "ragnarok-el-corazon-de-los-caidos" para usarlo en la URL.
+
+def slugify(texto):
+    """Genera un slug limpio a partir de un título."""
+    if not texto:
+        return 'libro'
+    # Descomponer los acentos y quedarse solo con la letra base
+    normalizado = unicodedata.normalize('NFKD', texto)
+    sin_tildes = ''.join(c for c in normalizado if not unicodedata.combining(c))
+    # La ñ se pierde con NFKD, así que se restaura antes
+    sin_tildes = texto.replace('ñ', 'n').replace('Ñ', 'N')
+    normalizado = unicodedata.normalize('NFKD', sin_tildes)
+    sin_tildes = ''.join(c for c in normalizado if not unicodedata.combining(c))
+    # Minúsculas, solo letras/números/guiones
+    s = sin_tildes.lower()
+    s = re.sub(r'[^a-z0-9]+', '-', s)
+    s = s.strip('-')
+    # Tope de largo para que la URL no sea absurda
+    s = s[:80].rstrip('-')
+    return s or 'libro'
+
+
+def slug_unico(conn, titulo, book_id=None):
+    """
+    Devuelve un slug que no choque con otro libro.
+    Si ya existe, agrega -2, -3, etc.
+    """
+    base = slugify(titulo)
+    candidato = base
+    n = 2
+    while True:
+        if book_id:
+            fila = conn.execute(
+                'SELECT id FROM books WHERE slug = ? AND id != ?',
+                (candidato, book_id)
+            ).fetchone()
+        else:
+            fila = conn.execute(
+                'SELECT id FROM books WHERE slug = ?', (candidato,)
+            ).fetchone()
+        if not fila:
+            return candidato
+        candidato = f'{base}-{n}'
+        n += 1
+
+
+def resolver_book_id(conn, identificador):
+    """
+    Acepta un ID numérico o un slug y devuelve el id del libro.
+    Permite que las URLs viejas por número sigan funcionando.
+    """
+    texto = str(identificador)
+    if texto.isdigit():
+        return int(texto)
+    fila = conn.execute('SELECT id FROM books WHERE slug = ?', (texto,)).fetchone()
+    return fila['id'] if fila else None
+
+
 # ── PORTADAS: tamaño completo + miniatura ─────────────────────────────────
 # Se guardan DOS versiones de cada portada:
 #   cover_123.jpg        → 600x900, para la ficha del libro
@@ -275,7 +337,8 @@ def init_db_internal():
         is_hidden INTEGER DEFAULT 0,
         book_note TEXT,
         free_tags TEXT,
-        last_featured DATETIME)''')
+        last_featured DATETIME,
+        slug TEXT UNIQUE)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS chapters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1007,9 +1070,10 @@ def handle_books():
             return jsonify({"error": ferr}), 400
 
         conn = get_db_connection()
-        conn.execute('''
-            INSERT INTO books (title, author, author_email, description, author_note, tags, created_at, is_adult, book_note, free_tags)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?)
+        nuevo_slug = slug_unico(conn, title)
+        cur = conn.execute('''
+            INSERT INTO books (title, author, author_email, description, author_note, tags, created_at, is_adult, book_note, free_tags, slug)
+            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?, ?)
         ''', (
             title,
             request.form.get('author'),
@@ -1019,11 +1083,12 @@ def handle_books():
             tags,
             is_adult,
             book_note,
-            free_tags
+            free_tags,
+            nuevo_slug
         ))
         conn.commit()
         conn.close()
-        return jsonify({"status": "created"}), 201
+        return jsonify({"status": "created", "slug": nuevo_slug, "id": cur.lastrowid}), 201
 
     # GET — público
     conn = get_db_connection()
@@ -1067,9 +1132,14 @@ def handle_books():
     return jsonify([dict(b) for b in books])
 
 
-@app.route('/api/books/<int:book_id>', methods=['GET'])
-def get_single_book(book_id):
+@app.route('/api/books/<book_ref>', methods=['GET'])
+def get_single_book(book_ref):
     conn = get_db_connection()
+    # Acepta tanto el id numérico como el slug del libro
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify({"error": "Libro no encontrado"}), 404
     book = conn.execute('SELECT * FROM books WHERE id = ?', (book_id,)).fetchone()
     if not book:
         conn.close()
@@ -1178,28 +1248,31 @@ def update_book_details(book_id):
         return jsonify({"error": ferr}), 400
 
     conn = get_db_connection()
+    # Si cambió el título, se regenera el slug
+    nuevo_slug = slug_unico(conn, title, book_id)
+
     if file and file.filename != '':
         candidato = secure_filename(f"cover_{book_id}_{int(time.time())}.jpg")
         if save_cover(file, candidato):
             conn.execute(
-                'UPDATE books SET title = ?, description = ?, tags = ?, author_note = ?, is_adult = ?, book_note = ?, free_tags = ? WHERE id = ?',
-                (title, description, tags, candidato, is_adult, book_note, free_tags, book_id)
+                'UPDATE books SET title = ?, description = ?, tags = ?, author_note = ?, is_adult = ?, book_note = ?, free_tags = ?, slug = ? WHERE id = ?',
+                (title, description, tags, candidato, is_adult, book_note, free_tags, nuevo_slug, book_id)
             )
         else:
             # Falló el procesamiento: se guardan los demás campos, no la portada
             conn.execute(
-                'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ?, free_tags = ? WHERE id = ?',
-                (title, description, tags, is_adult, book_note, free_tags, book_id)
+                'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ?, free_tags = ?, slug = ? WHERE id = ?',
+                (title, description, tags, is_adult, book_note, free_tags, nuevo_slug, book_id)
             )
     else:
         conn.execute(
-            'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ?, free_tags = ? WHERE id = ?',
-            (title, description, tags, is_adult, book_note, free_tags, book_id)
+            'UPDATE books SET title = ?, description = ?, tags = ?, is_adult = ?, book_note = ?, free_tags = ?, slug = ? WHERE id = ?',
+            (title, description, tags, is_adult, book_note, free_tags, nuevo_slug, book_id)
         )
 
     conn.commit()
     conn.close()
-    return jsonify({"status": "book_updated"}), 200
+    return jsonify({"status": "book_updated", "slug": nuevo_slug}), 200
 
 VALID_BOOK_STATUSES = {'ongoing', 'completed', 'paused', 'abandoned'}
  
@@ -1239,9 +1312,13 @@ def update_book_status(book_id):
 # CAPÍTULOS
 # =============================================================================
 
-@app.route('/api/books/<int:book_id>/chapters', methods=['GET'])
-def get_chapters(book_id):
+@app.route('/api/books/<book_ref>/chapters', methods=['GET'])
+def get_chapters(book_ref):
     conn = get_db_connection()
+    book_id = resolver_book_id(conn, book_ref)
+    if not book_id:
+        conn.close()
+        return jsonify([])
     # Usar el JOIN correcto para obtener comment_count
     chapters = conn.execute('''
         SELECT ch.*, COUNT(co.id) as comment_count
@@ -1913,6 +1990,94 @@ def register_view(book_id):
         return jsonify({"status": "already_counted"}), 200
     finally:
         conn.close()
+
+
+# =============================================================================
+# SEO — SITEMAP Y ROBOTS
+# =============================================================================
+
+# Dominio público del frontend (donde vive la web que ve el usuario).
+# Se puede sobrescribir con la variable de entorno SITE_URL.
+SITE_URL = os.environ.get('SITE_URL', 'https://libreriaamateur.com')
+
+
+@app.route('/sitemap.xml', methods=['GET'])
+def sitemap():
+    """
+    Sitemap generado al vuelo desde la base: incluye las páginas fijas,
+    todos los libros visibles y sus capítulos. Google lo usa para
+    descubrir el contenido sin tener que rastrear enlace por enlace.
+    """
+    conn = get_db_connection()
+    libros = conn.execute('''
+        SELECT id, created_at FROM books
+        WHERE is_hidden = 0
+        ORDER BY id
+    ''').fetchall()
+    capitulos = conn.execute('''
+        SELECT ch.id, ch.book_id, ch.created_at
+        FROM chapters ch
+        JOIN books b ON ch.book_id = b.id
+        WHERE b.is_hidden = 0
+        ORDER BY ch.book_id, ch.id
+    ''').fetchall()
+    conn.close()
+
+    def fecha(valor):
+        """Devuelve solo la parte YYYY-MM-DD, o vacío si no hay dato."""
+        if not valor:
+            return ''
+        return str(valor)[:10]
+
+    partes = ['<?xml version="1.0" encoding="UTF-8"?>',
+              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+
+    # Páginas fijas
+    for ruta, prioridad in [('', '1.0'), ('/rankings', '0.8'), ('/search', '0.8')]:
+        partes.append(
+            f'<url><loc>{SITE_URL}{ruta}</loc>'
+            f'<changefreq>daily</changefreq>'
+            f'<priority>{prioridad}</priority></url>'
+        )
+
+    # Un URL por libro
+    for b in libros:
+        f = fecha(b['created_at'])
+        lastmod = f'<lastmod>{f}</lastmod>' if f else ''
+        partes.append(
+            f'<url><loc>{SITE_URL}/book/{b["id"]}</loc>{lastmod}'
+            f'<changefreq>weekly</changefreq><priority>0.9</priority></url>'
+        )
+
+    # Un URL por capítulo (índice dentro del libro)
+    indices = {}
+    for c in capitulos:
+        idx = indices.get(c['book_id'], 0)
+        indices[c['book_id']] = idx + 1
+        f = fecha(c['created_at'])
+        lastmod = f'<lastmod>{f}</lastmod>' if f else ''
+        partes.append(
+            f'<url><loc>{SITE_URL}/reader/{c["book_id"]}/{idx}</loc>{lastmod}'
+            f'<changefreq>monthly</changefreq><priority>0.6</priority></url>'
+        )
+
+    partes.append('</urlset>')
+    xml = '\n'.join(partes)
+    return app.response_class(xml, mimetype='application/xml')
+
+
+@app.route('/robots.txt', methods=['GET'])
+def robots():
+    """Indica a los buscadores qué pueden rastrear y dónde está el sitemap."""
+    contenido = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /admin\n"
+        "Disallow: /api/\n"
+        "\n"
+        f"Sitemap: {request.url_root.rstrip('/')}/sitemap.xml\n"
+    )
+    return app.response_class(contenido, mimetype='text/plain')
 
 
 # =============================================================================
