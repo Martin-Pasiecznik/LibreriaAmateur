@@ -735,10 +735,13 @@ function App() {
 
                   {/* DESTACADOS */}
                   <section style={{ marginBottom: "60px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-                      <h2 style={{ fontSize: "1.1rem", fontWeight: 800, textTransform: "uppercase" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
+                      <h2 style={{ fontSize: "1.1rem", fontWeight: 800, textTransform: "uppercase", margin: 0 }}>
                         Destacados
                       </h2>
+                      <span style={{ fontSize: "0.72rem", color: theme.textMuted, opacity: 0.8 }}>
+                        Rotación equitativa cada hora, todo autor tiene su momento.
+                      </span>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "20px", alignItems: "stretch" }}>
                       {featuredBooks.map((book) => (

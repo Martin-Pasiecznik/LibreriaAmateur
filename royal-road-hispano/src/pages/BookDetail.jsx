@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { API_BASE, authHeader } from '../App';
 import CoverImage from '../components/CoverImage';
+import SpoilerText from '../components/SpoilerText';
 
 // Mínimo de clasificaciones para mostrar las estadísticas de lectores.
 // Con pocos datos el número no dice nada y además podría identificar
@@ -78,6 +79,7 @@ const BookDetail = ({ user, darkMode }) => {
   const [libraryStatus, setLibraryStatus] = useState(null);
   const [isUpdatingLib, setIsUpdatingLib] = useState(false);
   const [notif, setNotif]                 = useState("");
+  const commentRef = useRef(null);   // para el botón de spoiler
   const [progress, setProgress]           = useState({ lastChapterIndex: -1, readChapters: [] });
   const [isStatusOpen, setIsStatusOpen]   = useState(false);
 
@@ -260,11 +262,38 @@ const BookDetail = ({ user, darkMode }) => {
     if (!newComment.trim())     return setErrorMsg("El texto de la reseña es obligatorio.");
     const fullText = `[Estado: ${readingStatus}] ${newComment}`;
     fetch(`${API_BASE}/api/books/${id}/comments`, { method: 'POST', headers: authHeader(user), body: JSON.stringify({ user_name: user.name, text: fullText, chapter_id: null }) })
-      .then(r => { if (r.ok) { setErrorMsg(""); fetchComments(); alert(userReview ? "Reseña actualizada" : "Reseña publicada"); } });
+      .then(r => {
+        if (r.ok) {
+          setErrorMsg("");
+          fetchComments();
+          setNotif(userReview ? "Reseña actualizada" : "Reseña publicada");
+          setTimeout(() => setNotif(""), 3000);
+        }
+      });
   };
 
-  const deleteComment = (commentId) => {
-    if (!window.confirm('¿Seguro que querés eliminar tu reseña? No se puede deshacer.')) return;
+  // Envuelve el texto seleccionado del textarea con [spoiler]...[/spoiler]
+  const marcarSpoiler = () => {
+    const ta = commentRef.current;
+    if (!ta) return;
+    const ini = ta.selectionStart;
+    const fin = ta.selectionEnd;
+    const sel = newComment.slice(ini, fin);
+    if (!sel.trim()) {
+      setErrorMsg('Seleccioná primero el texto que querés marcar como spoiler.');
+      return;
+    }
+    const nuevo = newComment.slice(0, ini) + `[spoiler]${sel}[/spoiler]` + newComment.slice(fin);
+    setNewComment(nuevo);
+    setErrorMsg('');
+    setTimeout(() => {
+      ta.focus();
+      const pos = ini + `[spoiler]${sel}[/spoiler]`.length;
+      ta.setSelectionRange(pos, pos);
+    }, 0);
+  };
+
+  const deleteComment = (commentId) => {    if (!window.confirm('¿Seguro que querés eliminar tu reseña? No se puede deshacer.')) return;
     fetch(`${API_BASE}/api/comments/${commentId}`, {
       method: 'DELETE',
       headers: authHeader(user),
@@ -677,10 +706,33 @@ const BookDetail = ({ user, darkMode }) => {
             </div>
           </div>
 
-          <textarea value={newComment} onChange={e => setNewComment(e.target.value)}
-            style={{ width: '100%', height: '140px', padding: '20px', borderRadius: '12px', background: darkMode ? 'rgba(0,0,0,0.2)':'#fff', color: theme.textMain, border: `1px solid ${theme.border}`, marginBottom: '20px', outline: 'none', fontSize: '1rem', fontFamily: 'inherit', resize: 'none' }}
+          <textarea
+            ref={commentRef}
+            value={newComment} onChange={e => setNewComment(e.target.value)}
+            style={{ width: '100%', height: '140px', padding: '20px', borderRadius: '12px', background: darkMode ? 'rgba(0,0,0,0.2)':'#fff', color: theme.textMain, border: `1px solid ${theme.border}`, marginBottom: '10px', outline: 'none', fontSize: '1rem', fontFamily: 'inherit', resize: 'none' }}
             placeholder={user ? "Escribe tu opinión aquí..." : "Inicia sesión para dejar una reseña."} disabled={!user}
           />
+
+          {/* Marcar como spoiler el texto seleccionado */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={marcarSpoiler}
+              disabled={!user}
+              style={{
+                padding: '6px 14px', borderRadius: '8px',
+                border: `1px solid ${theme.border}`, background: 'transparent',
+                color: theme.textMuted, cursor: user ? 'pointer' : 'not-allowed',
+                fontSize: '0.78rem', fontWeight: 600, opacity: user ? 1 : 0.5,
+              }}
+            >
+              ⚠ Marcar como spoiler
+            </button>
+            <span style={{ fontSize: '0.72rem', color: theme.textMuted, opacity: 0.75 }}>
+              Seleccioná el texto que revela algo de la trama y tocá el botón.
+            </span>
+          </div>
+
           {errorMsg && <div style={{ color: theme.error, marginBottom: '20px', fontSize: '0.85rem', fontWeight: 600 }}>{errorMsg}</div>}
           <button onClick={postComment} disabled={!user} style={{ padding: '14px 40px', background: userReview ? theme.success : theme.accent, color: darkMode ? '#000':'#fff', border: 'none', borderRadius: '50px', cursor: user ? 'pointer':'not-allowed', fontWeight: 800, fontSize: '0.85rem', opacity: user ? 1 : 0.5 }}>
             {userReview ? "ACTUALIZAR RESEÑA" : "PUBLICAR CRÍTICA"}
@@ -712,7 +764,11 @@ const BookDetail = ({ user, darkMode }) => {
                       <small style={{ color: theme.textMuted, fontSize: '0.7rem' }}>{new Date(c.timestamp).toLocaleDateString()}</small>
                     </div>
                   </div>
-                  <p style={{ margin: 0, opacity: 0.85, lineHeight: '1.6', fontSize: '0.95rem', overflowWrap: 'break-word', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{cleanText}</p>
+                  <SpoilerText
+                    text={cleanText}
+                    theme={theme}
+                    style={{ margin: 0, opacity: 0.85, lineHeight: '1.6', fontSize: '0.95rem' }}
+                  />
 
                   {/* Cada usuario puede borrar su propia reseña */}
                   {c.user_email === user?.email && (

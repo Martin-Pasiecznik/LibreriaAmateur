@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { API_BASE, authHeader } from '../App';
 import FormattedText from '../components/FormattedText';
+import SpoilerText from '../components/SpoilerText';
 
 const BookReader = ({ user, darkMode, setDarkMode }) => {
   const { id, chapterIndex } = useParams();
@@ -14,6 +15,7 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
 
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
+  const commentRef = useRef(null);   // para el botón de spoiler
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const hasCounted = useRef(false);
@@ -68,6 +70,34 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
   };
 
   // GET público
+  // Envuelve el texto seleccionado con [spoiler]...[/spoiler]
+  const marcarSpoiler = () => {
+    const ta = commentRef.current;
+    if (!ta) return;
+    const ini = ta.selectionStart;
+    const fin = ta.selectionEnd;
+    const sel = newComment.slice(ini, fin);
+    if (!sel.trim()) return;
+    const nuevo = newComment.slice(0, ini) + `[spoiler]${sel}[/spoiler]` + newComment.slice(fin);
+    setNewComment(nuevo);
+    setTimeout(() => {
+      ta.focus();
+      const pos = ini + `[spoiler]${sel}[/spoiler]`.length;
+      ta.setSelectionRange(pos, pos);
+    }, 0);
+  };
+
+  // Un usuario puede borrar su propio comentario
+  const deleteComment = (commentId) => {
+    if (!window.confirm('¿Seguro que querés eliminar tu comentario? No se puede deshacer.')) return;
+    fetch(`${API_BASE}/api/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: authHeader(user),
+    })
+      .then(r => { if (r.ok) fetchComments(currentChapter?.id); })
+      .catch(err => console.error('Error al eliminar comentario:', err));
+  };
+
   const fetchComments = (chapterId) => {
     fetch(`${API_BASE}/api/books/${id}/comments?chapter_id=${chapterId}`)
       .then(res => res.json())
@@ -242,12 +272,25 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
         {user ? (
           <form onSubmit={handlePostComment} style={{ marginBottom: '50px' }}>
             <textarea
+              ref={commentRef}
               style={{ width: '100%', padding: '20px', borderRadius: '15px', backgroundColor: theme.card, color: theme.textMain, border: `1px solid ${theme.border}`, outline: 'none', resize: 'vertical', minHeight: '120px', boxSizing: 'border-box', fontSize: '1rem', fontFamily: 'inherit', transition: '0.3s' }}
               placeholder="Comparte tus impresiones sobre este capítulo..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
             />
-            <div style={{ textAlign: 'right', marginTop: '15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', gap: '12px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={marcarSpoiler}
+                style={{
+                  padding: '6px 14px', borderRadius: '8px',
+                  border: `1px solid ${theme.border}`, background: 'transparent',
+                  color: theme.textMuted, cursor: 'pointer',
+                  fontSize: '0.78rem', fontWeight: 600,
+                }}
+              >
+                ⚠ Marcar como spoiler
+              </button>
               <button type="submit" disabled={isSubmitting} style={{ padding: '12px 35px', borderRadius: '50px', backgroundColor: theme.accent, color: darkMode ? '#000' : '#fff', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem', opacity: isSubmitting ? 0.6 : 1 }}>
                 {isSubmitting ? "ENVIANDO..." : "COMENTAR"}
               </button>
@@ -270,12 +313,30 @@ const BookReader = ({ user, darkMode, setDarkMode }) => {
                 alt={c.display_name || c.user_name}
               />
 
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 700, color: theme.accent, fontSize: '0.9rem' }}>{c.display_name || c.user_name}</span>
-                  <span style={{ fontSize: '0.7rem', color: theme.textMuted, fontWeight: 600 }}>{new Date(c.timestamp).toLocaleDateString()}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontWeight: 700, color: theme.accent, fontSize: '0.9rem', overflowWrap: 'break-word', wordBreak: 'break-word', minWidth: 0 }}>{c.display_name || c.user_name}</span>
+                  <span style={{ fontSize: '0.7rem', color: theme.textMuted, fontWeight: 600, flexShrink: 0 }}>{new Date(c.timestamp).toLocaleDateString()}</span>
                 </div>
-                <p style={{ margin: 0, color: theme.textMain, lineHeight: '1.6', fontSize: '0.95rem', opacity: 0.9 }}>{c.text}</p>
+                <SpoilerText
+                  text={c.text}
+                  theme={theme}
+                  style={{ margin: 0, color: theme.textMain, lineHeight: '1.6', fontSize: '0.95rem', opacity: 0.9 }}
+                />
+
+                {/* Cada usuario puede borrar su propio comentario */}
+                {c.user_email === user?.email && (
+                  <button
+                    onClick={() => deleteComment(c.id)}
+                    style={{
+                      marginTop: '12px', background: 'none', border: 'none', padding: 0,
+                      color: theme.textMuted, fontSize: '0.75rem', cursor: 'pointer',
+                      textDecoration: 'underline', opacity: 0.7,
+                    }}
+                  >
+                    Eliminar mi comentario
+                  </button>
+                )}
               </div>
             </div>
           ))}
